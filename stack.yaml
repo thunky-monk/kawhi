@@ -1,8 +1,21 @@
 # For more information, see: https://github.com/commercialhaskell/stack/blob/release/doc/yaml_configuration.md
 
 # Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
-resolver: lts-4.1
+resolver: lts-3.20
 
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
+
+docker:
+  # Set to false to disable using Docker. In the project configuration,
+  # the presence of a `docker:` section implies docker is enabled unless
+  # `enable: false` is set. In user and global configuration, this is not
+  # the case.
+  enable: true
+
+  # The name of the repository to pull the image from.
+  # If this includes a tag (e.g. "my/image:tag"), that tagged image will be
+  # used. Without a tag specified, the LTS version slug is added automatically.
+  # Either `repo` or `image` may be specified, but not both.
+  repo: "fpco/stack-build"

@@ -89,7 +89,7 @@ tests = Tasty.testGroup "NBAStats.Resource" [
     unitStat
         "NBAStats.stat -> TableConversionError (type mismatch)"
         (defaultResponseBody [defaultResult { NBAStats.rows = [[Aeson.String defaultRowIdentifier, Aeson.String $ Text.pack $ show (a defaultModel), Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]] }])
-        (assertEitherThrown (NBAStats.TableConversionError "failed to parse field A: expected Integral, encountered String")
+        (assertEitherThrown (NBAStats.TableConversionError "when expecting a Integral, encountered String instead")
         "Should not convert because of field is wrong type"),
     unitStat
         "NBAStats.stat -> TableConversionError (missing field)"
@@ -101,7 +101,7 @@ tests = Tasty.testGroup "NBAStats.Resource" [
         "NBAStats.stat -> PayloadDecodeError (for Resource)"
         (Aeson.encode [defaultResult])
         (assertEitherThrown
-            (NBAStats.PayloadDecodeError "Error in $: expected Resource, encountered Array")
+            (NBAStats.PayloadDecodeError "when expecting a Resource, encountered Array instead")
             "Should not be able to decode invalid JSON"),
     unitStats
         "NBAStats.stats -> Success"
@@ -113,7 +113,7 @@ tests = Tasty.testGroup "NBAStats.Resource" [
         "parseJSON invalid :: Parser Result -> Error"
         (case Aeson.fromJSON $ Aeson.String "foo" :: Aeson.Result NBAStats.Result of
             Aeson.Success _ -> HUnit.assertFailure "Parse should not have succeeded"
-            Aeson.Error e -> e @?= "expected Result, encountered String")
+            Aeson.Error e -> e @?= "when expecting a Result, encountered String instead")
     ]
 
 propertyNBAStatsExceptionShow :: Show a => (String -> a) -> String -> Tasty.TestTree
