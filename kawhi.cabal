@@ -1,0 +1,63 @@
+name: kawhi
+version: 0.0.1
+synopsis: stats.NBA.com library
+description: Please see README.md
+homepage: https://github.com/hamsterdam/kawhi
+license: MIT
+license-file: LICENSE
+author: Aaron Taylor
+maintainer: aaron@hamsterdam.co
+build-type: Simple
+cabal-version: >=1.10
+
+library
+  hs-source-dirs: library
+  exposed-modules:
+    Control.Monad.HTTP
+    NBAStats
+    NBAStats.Team
+  other-modules:
+  build-depends:
+    base,
+    aeson,
+    bytestring,
+    exceptions,
+    http-conduit,
+    mtl,
+    safe,
+    scientific,
+    text,
+    unordered-containers
+  ghc-options: -Wall
+  default-language: Haskell2010
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is: Tests.hs
+  other-modules: NBAStats.Tests
+  build-depends:
+    base,
+
+    kawhi,
+
+    aeson,
+    bytestring,
+    exceptions,
+    http-conduit,
+    http-client,
+    http-types,
+    mtl,
+    scientific,
+    smallcheck,
+    tasty,
+    tasty-hunit,
+    tasty-quickcheck,
+    tasty-smallcheck,
+    text
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  default-language: Haskell2010
+
+source-repository head
+  type: git
+  location: https://github.com/hamsterdam/kawhi
