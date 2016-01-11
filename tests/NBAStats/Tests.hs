@@ -27,7 +27,7 @@ import qualified Test.Tasty.SmallCheck as SC
 import Test.Tasty.HUnit ((@?=))
 
 tests :: Tasty.TestTree
-tests = Tasty.testGroup "NBAStats.Resource" [
+tests = Tasty.testGroup "NBAStats" [
     propertyNBAStatsExceptionShow NBAStats.HTTPException "HTTPException",
     propertyNBAStatsExceptionShow NBAStats.PayloadDecodeError "PayloadDecodeError",
     propertyNBAStatsExceptionShow NBAStats.NoMatchingResult "NoMatchingResult",
