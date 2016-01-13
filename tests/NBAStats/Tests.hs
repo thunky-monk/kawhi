@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,8 +8,6 @@ module NBAStats.Tests where
 
 import qualified Control.Monad.Catch as Catch
 import qualified Control.Monad.HTTP as MonadHTTP
-import qualified Control.Monad.Reader as Reader
-import qualified Control.Monad.Trans as Trans
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
@@ -137,13 +134,13 @@ unitStat = unitStatAssertEither unitStatAction
 unitStats :: Tasty.TestName -> ByteString.ByteString -> (Either Catch.SomeException [MockModel] -> IO ()) -> Tasty.TestTree
 unitStats = unitStatAssertEither $ NBAStats.stats "mockmodels" defaultResultName defaultParams
 
-unitStatAction :: HTTP.Manager -> MockServer IO (Either Catch.SomeException MockModel)
+unitStatAction :: HTTP.Manager -> MonadHTTP.MockHTTP IO (Either Catch.SomeException MockModel)
 unitStatAction = NBAStats.stat "mockmodels" defaultResultName defaultColumnsKey defaultRowIdentifier defaultParams
 
-unitStatRunAction :: (HTTP.Manager -> MockServer IO a) -> ByteString.ByteString -> HTTPTypes.Status -> IO a
+unitStatRunAction :: (HTTP.Manager -> MonadHTTP.MockHTTP IO a) -> ByteString.ByteString -> HTTPTypes.Status -> IO a
 unitStatRunAction action responseBody responseStatus = do
     manager <- HTTP.newManager HTTP.tlsManagerSettings
-    runMockServer
+    MonadHTTP.runMockHTTP
         (action manager)
         HTTPInternal.Response {
             HTTP.responseStatus = responseStatus,
@@ -158,7 +155,7 @@ unitStatBase :: Tasty.TestName
                        -> HUnit.Assertion -> Tasty.TestTree
 unitStatBase = HUnit.testCase
 
-unitStatAssertEither :: (HTTP.Manager -> MockServer IO a) -> Tasty.TestName -> ByteString.ByteString -> (a -> IO ()) -> Tasty.TestTree
+unitStatAssertEither :: (HTTP.Manager -> MonadHTTP.MockHTTP IO a) -> Tasty.TestName -> ByteString.ByteString -> (a -> IO ()) -> Tasty.TestTree
 unitStatAssertEither function testName responseBody assert = unitStatBase testName $ do
     eitherModel <- unitStatRunAction function responseBody HTTPTypes.ok200
     assert eitherModel
@@ -198,22 +195,6 @@ defaultRow = [Aeson.String defaultRowIdentifier, Aeson.Number $ Sci.scientific (
 
 defaultModel :: MockModel
 defaultModel = MockModel { a = 1, b = "1", c = 1.1 }
-
-newtype MockServer m a = MockServer { mockServer :: Reader.ReaderT (HTTP.Response ByteString.ByteString) m a }
-    deriving (Applicative, Functor, Monad, Trans.MonadTrans, Reader.MonadReader (HTTP.Response ByteString.ByteString), Catch.MonadThrow, Catch.MonadCatch, Trans.MonadIO)
-
-runMockServer :: MockServer m a -> HTTP.Response ByteString.ByteString -> m a
-runMockServer (MockServer s) = Reader.runReaderT s
-
-instance Catch.MonadThrow m => MonadHTTP.MonadHTTP (MockServer m) where
-    request _ _ = check
-        where
-            check = do
-                response <- Reader.ask
-                let status = HTTP.responseStatus response
-                if status >= HTTPTypes.ok200 && status < HTTPTypes.multipleChoices300
-                    then return response
-                    else Catch.throwM $ HTTP.StatusCodeException status [] (HTTP.createCookieJar [])
 
 data MockModel = MockModel {
     a :: Integer,

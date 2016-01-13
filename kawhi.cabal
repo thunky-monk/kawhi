@@ -23,6 +23,7 @@ library
     bytestring,
     exceptions,
     http-conduit,
+    http-types,
     mtl,
     safe,
     scientific,
@@ -38,16 +39,13 @@ test-suite tests
   other-modules: NBAStats.Tests
   build-depends:
     base,
-
     kawhi,
-
     aeson,
     bytestring,
     exceptions,
     http-conduit,
     http-client,
     http-types,
-    mtl,
     scientific,
     smallcheck,
     tasty,
