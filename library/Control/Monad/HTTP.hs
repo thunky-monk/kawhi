@@ -14,10 +14,10 @@ import qualified Network.HTTP.Conduit as HTTP
 import qualified Network.HTTP.Types as HTTP
 
 class Monad m => MonadHTTP m where
-    request :: HTTP.Request -> HTTP.Manager -> m (HTTP.Response LBS.ByteString)
+    performRequest :: HTTP.Request -> HTTP.Manager -> m (HTTP.Response LBS.ByteString)
 
 instance MonadHTTP IO where
-    request = HTTP.httpLbs
+    performRequest = HTTP.httpLbs
 
 newtype MockHTTP m a = MockHTTP (Reader.ReaderT (HTTP.Response LBS.ByteString) m a)
     deriving (Applicative, Functor, Monad, Trans.MonadTrans, Catch.MonadThrow, Catch.MonadCatch, Trans.MonadIO, Reader.MonadReader (HTTP.Response LBS.ByteString))
@@ -26,7 +26,7 @@ runMockHTTP :: MockHTTP m a -> HTTP.Response LBS.ByteString -> m a
 runMockHTTP (MockHTTP reader) = Reader.runReaderT reader
 
 instance Catch.MonadThrow m => MonadHTTP (MockHTTP m) where
-    request _ _ = check
+    performRequest _ _ = check
         where
             check = do
                 response <- Reader.ask

@@ -137,7 +137,7 @@ get :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadT
 get path params manager = do
     initRequest <- HTTP.parseUrl $ "http://stats.nba.com/stats/" ++ path
     let request = HTTP.setQueryString params initRequest
-    catchHTTP $ Monad.liftM return (MonadHTTP.request request manager)
+    catchHTTP $ Monad.liftM return (MonadHTTP.performRequest request manager)
 
 catchHTTP :: (Trans.MonadIO m, Catch.MonadCatch m) => m a -> m a
 catchHTTP f =
