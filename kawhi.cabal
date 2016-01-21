@@ -21,6 +21,7 @@ library
     base,
     aeson,
     bytestring,
+    data-default,
     exceptions,
     http-conduit,
     http-types,

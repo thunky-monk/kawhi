@@ -22,7 +22,7 @@ import qualified Data.Text as Text
 import qualified NBAStats
 import qualified Network.HTTP.Conduit as HTTP
 
-path :: String
+path :: SBS.ByteString
 path = "leaguedashteamstats"
 
 result :: Text.Text

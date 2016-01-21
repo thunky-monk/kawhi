@@ -5,6 +5,8 @@
 
 module NBAStats (
     Column,
+    domain,
+    getRequest,
     NBAStatsException(..),
     Parameters,
     Path,
@@ -25,13 +27,18 @@ import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:), (.=))
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as SBS
+import qualified Data.Default as Default
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
+import Data.Monoid ((<>))
 import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Text as Text
 import qualified Data.Typeable as Typeable
 import qualified Network.HTTP.Conduit as HTTP
 import qualified Safe
+
+domain :: SBS.ByteString
+domain = "stats.nba.com"
 
 stats :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadThrow m, Aeson.FromJSON a) => Path -> ResultName -> Parameters -> HTTP.Manager -> i (m [a])
 stats path resultName params manager = do
@@ -68,7 +75,7 @@ type Row = [Aeson.Value]
 
 type Parameters = [(SBS.ByteString, Maybe SBS.ByteString)]
 
-type Path = String
+type Path = SBS.ByteString
 
 type ResultName = Text.Text
 
@@ -133,9 +140,19 @@ findResult eitherResponse resultName = do
         return
         (List.find (\r -> name r == resultName) $ results resource)
 
+getRequest :: Trans.MonadIO m => Path -> m HTTP.Request
+getRequest path = do
+    initRequest <- Trans.liftIO (Default.def :: IO HTTP.Request)
+    return initRequest {
+        HTTP.method = "GET",
+        HTTP.secure = False,
+        HTTP.host = domain,
+        HTTP.path = "/stats/" <> path
+    }
+
 get :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadThrow m) => Path -> Parameters -> HTTP.Manager -> i (m (HTTP.Response LBS.ByteString))
 get path params manager = do
-    initRequest <- HTTP.parseUrl $ "http://stats.nba.com/stats/" ++ path
+    initRequest <- getRequest path
     let request = HTTP.setQueryString params initRequest
     catchHTTP $ Monad.liftM return (MonadHTTP.performRequest request manager)
 

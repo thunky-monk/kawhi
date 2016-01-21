@@ -11,7 +11,9 @@ import qualified Control.Monad.HTTP as MonadHTTP
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
+import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as ByteString
+import Data.Monoid ((<>))
 import qualified Data.Scientific as Sci
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client.Internal as HTTPInternal
@@ -25,6 +27,11 @@ import Test.Tasty.HUnit ((@?=))
 
 tests :: Tasty.TestTree
 tests = Tasty.testGroup "NBAStats" [
+    SC.testProperty "getRequest == HTTP.parseUrl" $
+        \path -> SC.monadic $ do
+            request <- NBAStats.getRequest $ Char8.pack path
+            model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
+            return $ show request == show model,
     propertyNBAStatsExceptionShow NBAStats.HTTPException "HTTPException",
     propertyNBAStatsExceptionShow NBAStats.PayloadDecodeError "PayloadDecodeError",
     propertyNBAStatsExceptionShow NBAStats.NoMatchingResult "NoMatchingResult",
