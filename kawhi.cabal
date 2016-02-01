@@ -14,8 +14,8 @@ library
   hs-source-dirs: library
   exposed-modules:
     Control.Monad.HTTP
-    NBAStats
-    NBAStats.Team
+    NBA.Stats
+    NBA.Stats.Team
   other-modules:
   build-depends:
     base,
@@ -37,7 +37,7 @@ test-suite tests
   type: exitcode-stdio-1.0
   hs-source-dirs: tests
   main-is: Tests.hs
-  other-modules: NBAStats.Tests
+  other-modules: NBA.Stats.Tests
   build-depends:
     base,
     kawhi,

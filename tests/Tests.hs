@@ -1,6 +1,6 @@
 import qualified Test.Tasty as Tasty
 
-import qualified NBAStats.Tests as NBAStats
+import qualified NBA.Stats.Tests as Stats
 
 main :: IO ()
-main = Tasty.defaultMain NBAStats.tests
+main = Tasty.defaultMain Stats.tests

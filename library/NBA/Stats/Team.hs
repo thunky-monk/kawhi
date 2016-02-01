@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module NBAStats.Team (
+module NBA.Stats.Team (
     misc,
     Misc(..),
     teams,
@@ -19,7 +19,7 @@ import Data.Aeson ((.:))
 import qualified Data.ByteString as SBS
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Text as Text
-import qualified NBAStats
+import qualified NBA.Stats as Stats
 import qualified Network.HTTP.Conduit as HTTP
 
 path :: SBS.ByteString
@@ -41,7 +41,7 @@ instance Aeson.FromJSON Team where
     parseJSON invalid = Aeson.typeMismatch "Team" invalid
 
 teams :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadThrow m) => HTTP.Manager -> i (m [Team])
-teams = NBAStats.stats path result (HashMap.toList defaultParameters)
+teams = Stats.stats path result (HashMap.toList defaultParameters)
 
 data Traditional = Traditional {
     gamesPlayed :: Integer,
@@ -90,7 +90,7 @@ instance Aeson.FromJSON Traditional where
     parseJSON invalid = Aeson.typeMismatch "Traditional" invalid
 
 traditional :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadThrow m) => Team -> HTTP.Manager -> i (m Traditional)
-traditional team = NBAStats.stat path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
+traditional team = Stats.stat path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
 
 data Misc = Misc {
     pointsOffTurnovers :: Double,
@@ -113,7 +113,7 @@ misc team =
     let
         miscParams = HashMap.adjust (const $ Just "Misc") "MeasureType" defaultParameters
     in
-        NBAStats.stat path result "TEAM_ID" (identifier team) (HashMap.toList miscParams)
+        Stats.stat path result "TEAM_ID" (identifier team) (HashMap.toList miscParams)
 
 defaultParameters :: HashMap.HashMap SBS.ByteString (Maybe SBS.ByteString)
 defaultParameters = HashMap.fromList [

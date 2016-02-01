@@ -3,11 +3,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module NBAStats (
+module NBA.Stats (
     Column,
     domain,
     getRequest,
-    NBAStatsException(..),
     Parameters,
     Path,
     Resource(..),
@@ -15,7 +14,8 @@ module NBAStats (
     ResultName,
     Row,
     stat,
-    stats
+    stats,
+    StatsException(..)
 ) where
 
 import qualified Control.Monad as Monad
@@ -162,7 +162,7 @@ catchHTTP f =
         f
         (\(e :: HTTP.HttpException) -> Catch.throwM . HTTPException $ show e)
 
-data NBAStatsException =
+data StatsException =
     HTTPException String |
     PayloadDecodeError String |
     NoMatchingResult String |
@@ -172,8 +172,8 @@ data NBAStatsException =
     TableConversionError String
     deriving (Typeable.Typeable, Eq)
 
-instance Show NBAStatsException where
-    show nbaException = "NBAStatsException (" ++ showCase nbaException ++ ")"
+instance Show StatsException where
+    show nbaException = "StatsException (" ++ showCase nbaException ++ ")"
         where
             showCase exception = case exception of
                 HTTPException message -> format "HTTPException" message
@@ -186,4 +186,4 @@ instance Show NBAStatsException where
             format :: String -> String -> String
             format name message = name ++ " " ++ message
 
-instance Catch.Exception NBAStatsException
+instance Catch.Exception StatsException

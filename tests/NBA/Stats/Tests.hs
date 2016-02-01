@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module NBAStats.Tests where
+module NBA.Stats.Tests where
 
 import qualified Control.Monad.Catch as Catch
 import qualified Control.Monad.HTTP as MonadHTTP
@@ -19,130 +19,130 @@ import qualified Data.Text as Text
 import qualified Network.HTTP.Client.Internal as HTTPInternal
 import qualified Network.HTTP.Conduit as HTTP
 import qualified Network.HTTP.Types as HTTPTypes
-import qualified NBAStats
+import qualified NBA.Stats as Stats
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
 import qualified Test.Tasty.SmallCheck as SC
 import Test.Tasty.HUnit ((@?=))
 
 tests :: Tasty.TestTree
-tests = Tasty.testGroup "NBAStats" [
+tests = Tasty.testGroup "NBA.Stats" [
     SC.testProperty "getRequest == HTTP.parseUrl" $
         \path -> SC.monadic $ do
-            request <- NBAStats.getRequest $ Char8.pack path
+            request <- Stats.getRequest $ Char8.pack path
             model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
             return $ show request == show model,
-    propertyNBAStatsExceptionShow NBAStats.HTTPException "HTTPException",
-    propertyNBAStatsExceptionShow NBAStats.PayloadDecodeError "PayloadDecodeError",
-    propertyNBAStatsExceptionShow NBAStats.NoMatchingResult "NoMatchingResult",
-    propertyNBAStatsExceptionShow NBAStats.NoMatchingRow "NoMatchingRow",
-    propertyNBAStatsExceptionShow NBAStats.NoKeyInColumns "NoKeyInColumns",
-    propertyNBAStatsExceptionShow NBAStats.NoValueForRowIndex "NoValueForRowIndex",
-    propertyNBAStatsExceptionShow NBAStats.TableConversionError "TableConversionError",
+    propertyStatsExceptionShow Stats.HTTPException "HTTPException",
+    propertyStatsExceptionShow Stats.PayloadDecodeError "PayloadDecodeError",
+    propertyStatsExceptionShow Stats.NoMatchingResult "NoMatchingResult",
+    propertyStatsExceptionShow Stats.NoMatchingRow "NoMatchingRow",
+    propertyStatsExceptionShow Stats.NoKeyInColumns "NoKeyInColumns",
+    propertyStatsExceptionShow Stats.NoValueForRowIndex "NoValueForRowIndex",
+    propertyStatsExceptionShow Stats.TableConversionError "TableConversionError",
     unitStat
-        "NBAStats.stat -> Success"
+        "Stats.stat -> Success"
         (defaultResponseBody [defaultResult])
         (\eitherModel -> case eitherModel of
             Left e -> HUnit.assertFailure $ show e
             Right model -> model @?= defaultModel),
     unitStatBase
-        "NBAStats.stat -> HTTPException StatusCodeException"
+        "Stats.stat -> HTTPException StatusCodeException"
         (Catch.catch
             (do
                 _ <- unitStatRunAction unitStatAction (defaultResponseBody [defaultResult]) HTTPTypes.unauthorized401
                 HUnit.assertFailure "StatusCodeException should have been thrown"
             )
-            (\e@(NBAStats.HTTPException _) ->
-                e @?= NBAStats.HTTPException (show $ HTTP.StatusCodeException HTTPTypes.unauthorized401 [] (HTTP.createCookieJar [])))),
+            (\e@(Stats.HTTPException _) ->
+                e @?= Stats.HTTPException (show $ HTTP.StatusCodeException HTTPTypes.unauthorized401 [] (HTTP.createCookieJar [])))),
     unitStat
-        "NBAStats.stat -> NoValueForRowIndex"
-        (defaultResponseBody [defaultResult { NBAStats.rows = [take 2 defaultRow] }])
+        "Stats.stat -> NoValueForRowIndex"
+        (defaultResponseBody [defaultResult { Stats.rows = [take 2 defaultRow] }])
         (assertEitherThrown
-            (NBAStats.NoValueForRowIndex "2")
+            (Stats.NoValueForRowIndex "2")
             "Should not have row value matching for index 2"),
     unitStat
-        "NBAStats.stat -> NoMatchingRow (no rows)"
-        (defaultResponseBody [defaultResult { NBAStats.rows = [] }])
+        "Stats.stat -> NoMatchingRow (no rows)"
+        (defaultResponseBody [defaultResult { Stats.rows = [] }])
         (assertEitherThrown
-            (NBAStats.NoMatchingRow $ show defaultRowIdentifier)
+            (Stats.NoMatchingRow $ show defaultRowIdentifier)
             ("Should not have row with matching identifier: " ++ show defaultRowIdentifier)),
     unitStat
-        "NBAStats.stat -> NoMatchingRow (no key value)"
-        (defaultResponseBody [defaultResult { NBAStats.rows = [[]] }])
+        "Stats.stat -> NoMatchingRow (no key value)"
+        (defaultResponseBody [defaultResult { Stats.rows = [[]] }])
         (assertEitherThrown
-            (NBAStats.NoMatchingRow $ show defaultRowIdentifier)
+            (Stats.NoMatchingRow $ show defaultRowIdentifier)
             ("Should not have row with matching identifier: " ++ show defaultRowIdentifier)),
     unitStat
-        "NBAStats.stat -> NoMatchingRow (JSON parse error for key value)"
-        (let rowWithBadValue = Aeson.Number 99 : defaultRow in defaultResponseBody [defaultResult { NBAStats.rows = [rowWithBadValue] }])
+        "Stats.stat -> NoMatchingRow (JSON parse error for key value)"
+        (let rowWithBadValue = Aeson.Number 99 : defaultRow in defaultResponseBody [defaultResult { Stats.rows = [rowWithBadValue] }])
         (assertEitherThrown
-            (NBAStats.NoMatchingRow $ show defaultRowIdentifier)
+            (Stats.NoMatchingRow $ show defaultRowIdentifier)
             ("Should not have row with matching identifier: " ++ show defaultRowIdentifier)),
     unitStat
-        "NBAStats.stat -> NoMatchingResult"
+        "Stats.stat -> NoMatchingResult"
         (defaultResponseBody [])
         (assertEitherThrown
-            (NBAStats.NoMatchingResult $ Text.unpack defaultResultName)
+            (Stats.NoMatchingResult $ Text.unpack defaultResultName)
             ("Should not have matching result:" ++ Text.unpack defaultResultName)),
     unitStat
-        "NBAStats.stat -> NoKeyInColumns"
-        (defaultResponseBody [defaultResult { NBAStats.columns = [] }])
+        "Stats.stat -> NoKeyInColumns"
+        (defaultResponseBody [defaultResult { Stats.columns = [] }])
         (assertEitherThrown
-            (NBAStats.NoKeyInColumns $ Text.unpack defaultColumnsKey)
+            (Stats.NoKeyInColumns $ Text.unpack defaultColumnsKey)
             ("Should not have key in columns: " ++ Text.unpack defaultColumnsKey)),
     unitStat
-        "NBAStats.stat -> TableConversionError (type mismatch)"
-        (defaultResponseBody [defaultResult { NBAStats.rows = [[Aeson.String defaultRowIdentifier, Aeson.String $ Text.pack $ show (a defaultModel), Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]] }])
-        (assertEitherThrown (NBAStats.TableConversionError "when expecting a Integral, encountered String instead")
+        "Stats.stat -> TableConversionError (type mismatch)"
+        (defaultResponseBody [defaultResult { Stats.rows = [[Aeson.String defaultRowIdentifier, Aeson.String $ Text.pack $ show (a defaultModel), Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]] }])
+        (assertEitherThrown (Stats.TableConversionError "when expecting a Integral, encountered String instead")
         "Should not convert because of field is wrong type"),
     unitStat
-        "NBAStats.stat -> TableConversionError (missing field)"
-        (defaultResponseBody [defaultResult { NBAStats.columns = take (length defaultColumns - 1) defaultColumns }])
+        "Stats.stat -> TableConversionError (missing field)"
+        (defaultResponseBody [defaultResult { Stats.columns = take (length defaultColumns - 1) defaultColumns }])
         (assertEitherThrown
-            (NBAStats.TableConversionError "key \"C\" not present")
+            (Stats.TableConversionError "key \"C\" not present")
             "Should not convert because field is missing"),
     unitStat
-        "NBAStats.stat -> PayloadDecodeError (for Resource)"
+        "Stats.stat -> PayloadDecodeError (for Resource)"
         (Aeson.encode [defaultResult])
         (assertEitherThrown
-            (NBAStats.PayloadDecodeError "when expecting a Resource, encountered Array instead")
+            (Stats.PayloadDecodeError "when expecting a Resource, encountered Array instead")
             "Should not be able to decode invalid JSON"),
     unitStats
-        "NBAStats.stats -> Success"
-        (defaultResponseBody [defaultResult { NBAStats.rows = [defaultRow, defaultRow] }])
+        "Stats.stats -> Success"
+        (defaultResponseBody [defaultResult { Stats.rows = [defaultRow, defaultRow] }])
         (\eitherModels -> case eitherModels of
             Left e -> HUnit.assertFailure $ show e
             Right models -> models @?= [defaultModel, defaultModel]),
     HUnit.testCase
         "parseJSON invalid :: Parser Result -> Error"
-        (case Aeson.fromJSON $ Aeson.String "foo" :: Aeson.Result NBAStats.Result of
+        (case Aeson.fromJSON $ Aeson.String "foo" :: Aeson.Result Stats.Result of
             Aeson.Success _ -> HUnit.assertFailure "Parse should not have succeeded"
             Aeson.Error e -> e @?= "when expecting a Result, encountered String instead")
     ]
 
-propertyNBAStatsExceptionShow :: Show a => (String -> a) -> String -> Tasty.TestTree
-propertyNBAStatsExceptionShow constructor exception =
+propertyStatsExceptionShow :: Show a => (String -> a) -> String -> Tasty.TestTree
+propertyStatsExceptionShow constructor exception =
     SC.testProperty testName property
     where
-        testName = "show (" ++ exception ++ " message) == \"NBAStatsException (" ++ exception ++ " message)\""
-        property message = show (constructor message) == "NBAStatsException (" ++ exception ++ " " ++ message ++ ")"
+        testName = "show (" ++ exception ++ " message) == \"StatsException (" ++ exception ++ " message)\""
+        property message = show (constructor message) == "StatsException (" ++ exception ++ " " ++ message ++ ")"
 
-assertEitherThrown :: Catch.Exception e => NBAStats.NBAStatsException -> String -> Either e MockModel -> IO ()
+assertEitherThrown :: Catch.Exception e => Stats.StatsException -> String -> Either e MockModel -> IO ()
 assertEitherThrown exception failureMessage eitherModel =
     case eitherModel of
         Left someE -> Catch.catch
             (Catch.throwM someE)
-            (\(e :: NBAStats.NBAStatsException) -> e @?= exception)
+            (\(e :: Stats.StatsException) -> e @?= exception)
         Right (_ :: MockModel) -> HUnit.assertFailure failureMessage
 
 unitStat :: Tasty.TestName -> ByteString.ByteString -> (Either Catch.SomeException MockModel -> IO ()) -> Tasty.TestTree
 unitStat = unitStatAssertEither unitStatAction
 
 unitStats :: Tasty.TestName -> ByteString.ByteString -> (Either Catch.SomeException [MockModel] -> IO ()) -> Tasty.TestTree
-unitStats = unitStatAssertEither $ NBAStats.stats "mockmodels" defaultResultName defaultParams
+unitStats = unitStatAssertEither $ Stats.stats "mockmodels" defaultResultName defaultParams
 
 unitStatAction :: HTTP.Manager -> MonadHTTP.MockHTTP IO (Either Catch.SomeException MockModel)
-unitStatAction = NBAStats.stat "mockmodels" defaultResultName defaultColumnsKey defaultRowIdentifier defaultParams
+unitStatAction = Stats.stat "mockmodels" defaultResultName defaultColumnsKey defaultRowIdentifier defaultParams
 
 unitStatRunAction :: (HTTP.Manager -> MonadHTTP.MockHTTP IO a) -> ByteString.ByteString -> HTTPTypes.Status -> IO a
 unitStatRunAction action responseBody responseStatus = do
@@ -167,37 +167,37 @@ unitStatAssertEither function testName responseBody assert = unitStatBase testNa
     eitherModel <- unitStatRunAction function responseBody HTTPTypes.ok200
     assert eitherModel
 
-defaultParams :: NBAStats.Parameters
+defaultParams :: Stats.Parameters
 defaultParams = [("param", Just "value")]
 
-defaultResponseBody :: [NBAStats.Result] -> ByteString.ByteString
-defaultResponseBody results = Aeson.encode defaultResource { NBAStats.results = results }
+defaultResponseBody :: [Stats.Result] -> ByteString.ByteString
+defaultResponseBody results = Aeson.encode defaultResource { Stats.results = results }
 
-defaultResource :: NBAStats.Resource
-defaultResource = NBAStats.Resource {
+defaultResource :: Stats.Resource
+defaultResource = Stats.Resource {
     results = []
 }
 
-defaultResult :: NBAStats.Result
-defaultResult = NBAStats.Result {
+defaultResult :: Stats.Result
+defaultResult = Stats.Result {
     name = defaultResultName,
     columns = defaultColumns,
     rows = [defaultRow]
 }
 
-defaultResultName :: NBAStats.ResultName
+defaultResultName :: Stats.ResultName
 defaultResultName = "name"
 
-defaultColumnsKey :: NBAStats.Column
+defaultColumnsKey :: Stats.Column
 defaultColumnsKey = "key"
 
 defaultRowIdentifier :: Text.Text
 defaultRowIdentifier = "identifier"
 
-defaultColumns :: [NBAStats.Column]
+defaultColumns :: [Stats.Column]
 defaultColumns = [defaultColumnsKey, "A", "B", "C"]
 
-defaultRow :: NBAStats.Row
+defaultRow :: Stats.Row
 defaultRow = [Aeson.String defaultRowIdentifier, Aeson.Number $ Sci.scientific (a defaultModel) 0, Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]
 
 defaultModel :: MockModel
