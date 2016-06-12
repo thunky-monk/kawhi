@@ -4,6 +4,12 @@ sudo: false
 # Choose a lightweight base image; we provide our own build tools.
 language: c
 
+# GHC depends on GMP
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+
 # Caching so the next build will be fast too.
 cache:
   directories:
