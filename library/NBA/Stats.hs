@@ -115,7 +115,7 @@ instance Aeson.FromJSON Resource where
 
 convertTable :: (Catch.MonadThrow m, Aeson.FromJSON a) => [Column] -> Row -> m a
 convertTable columns row = do
-    object <- Monad.liftM (Aeson.Object . fst) $ Foldable.foldlM
+    object <- fmap (Aeson.Object . fst) $ Foldable.foldlM
         (\(hash, index) column -> do
             value <- maybe
                 (Catch.throwM $ NoValueForRowIndex $ show index)
@@ -154,7 +154,7 @@ get :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadT
 get path params manager = do
     initRequest <- getRequest path
     let request = HTTP.setQueryString params initRequest
-    catchHTTP $ Monad.liftM return (MonadHTTP.performRequest request manager)
+    catchHTTP $ fmap return (MonadHTTP.performRequest request manager)
 
 catchHTTP :: (Trans.MonadIO m, Catch.MonadCatch m) => m a -> m a
 catchHTTP f =
