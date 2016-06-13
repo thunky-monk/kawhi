@@ -121,7 +121,7 @@ convertTable columns row = do
                 (Catch.throwM $ NoValueForRowIndex $ show index)
                 return
                 (Safe.atMay row index)
-            return (HashMap.insert column value hash, index + 1))
+            return (HashMap.insert column value hash, index `seq` index + 1))
         (HashMap.empty, 0)
         columns
     case Aeson.parse Aeson.parseJSON object of
