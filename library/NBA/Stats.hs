@@ -13,8 +13,8 @@ module NBA.Stats (
     Result(..),
     ResultName,
     Row,
-    stat,
-    stats,
+    getStat,
+    getStats,
     StatsException(..)
 ) where
 
@@ -40,34 +40,32 @@ import qualified Safe
 domain :: SBS.ByteString
 domain = "stats.nba.com"
 
-stats :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadThrow m, Aeson.FromJSON a) => Path -> ResultName -> Parameters -> HTTP.Manager -> i (m [a])
-stats path resultName params manager = do
-    eitherResponse <- catchHTTP $ get path params manager
-    return $ do
-        result <- findResult eitherResponse resultName
-        Monad.forM (rows result) $ convertTable (columns result)
+getStats :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Aeson.FromJSON a) => Path -> ResultName -> Parameters -> HTTP.Manager -> m [a]
+getStats path resultName params manager = do
+    response <- catchHTTP $ get path params manager
+    result <- findResult response resultName
+    Monad.forM (rows result) $ convertTable (columns result)
 
-stat :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadThrow m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> ResultName -> Column -> v -> Parameters -> HTTP.Manager -> i (m a)
-stat path resultName key value params manager = do
-    eitherResponse <- catchHTTP $ get path params manager
-    return $ do
-        result <- findResult eitherResponse resultName
-        keyIndex <- maybe
-            (Catch.throwM $ NoKeyInColumns $ Text.unpack key)
-            return
-            (List.elemIndex key (columns result))
-        row <- maybe
-            (Catch.throwM $ NoMatchingRow $ show value)
-            return
-            (List.find
-                (\row ->
-                    case Safe.atMay row keyIndex of
+getStat :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> ResultName -> Column -> v -> Parameters -> HTTP.Manager -> m a
+getStat path resultName key value params manager = do
+    response <- catchHTTP $ get path params manager
+    result <- findResult response resultName
+    keyIndex <- maybe
+        (Catch.throwM $ NoKeyInColumns $ Text.unpack key)
+        return
+        (List.elemIndex key (columns result))
+    row <- maybe
+        (Catch.throwM $ NoMatchingRow $ show value)
+        return
+        (List.find
+            (\row ->
+                case Safe.atMay row keyIndex of
+                    Nothing -> False
+                    Just v -> case Aeson.parseMaybe Aeson.parseJSON v of
                         Nothing -> False
-                        Just v -> case Aeson.parseMaybe Aeson.parseJSON v of
-                            Nothing -> False
-                            Just a -> a == value)
-                (rows result))
-        convertTable (columns result) row
+                        Just a -> a == value)
+            (rows result))
+    convertTable (columns result) row
 
 type Column = Text.Text
 
@@ -128,9 +126,8 @@ convertTable columns row = do
         Aeson.Error message -> Catch.throwM $ TableConversionError message
         Aeson.Success result -> return result
 
-findResult :: Catch.MonadThrow m => m (HTTP.Response LBS.ByteString) -> ResultName -> m Result
-findResult eitherResponse resultName = do
-    response <- eitherResponse
+findResult :: Catch.MonadThrow m => HTTP.Response LBS.ByteString -> ResultName -> m Result
+findResult response resultName = do
     resource <- either
         (Catch.throwM . PayloadDecodeError)
         return
@@ -150,11 +147,11 @@ getRequest path = do
         HTTP.path = "/stats/" <> path
     }
 
-get :: (Trans.MonadIO i, Catch.MonadCatch i, MonadHTTP.MonadHTTP i, Catch.MonadThrow m) => Path -> Parameters -> HTTP.Manager -> i (m (HTTP.Response LBS.ByteString))
+get :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m) => Path -> Parameters -> HTTP.Manager -> m (HTTP.Response LBS.ByteString)
 get path params manager = do
     initRequest <- getRequest path
     let request = HTTP.setQueryString params initRequest
-    catchHTTP $ fmap return (MonadHTTP.performRequest request manager)
+    catchHTTP $ MonadHTTP.performRequest request manager
 
 catchHTTP :: (Trans.MonadIO m, Catch.MonadCatch m) => m a -> m a
 catchHTTP f =

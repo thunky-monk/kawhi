@@ -39,80 +39,87 @@ tests = Tasty.testGroup "NBA.Stats" [
     propertyStatsExceptionShow Stats.NoKeyInColumns "NoKeyInColumns",
     propertyStatsExceptionShow Stats.NoValueForRowIndex "NoValueForRowIndex",
     propertyStatsExceptionShow Stats.TableConversionError "TableConversionError",
-    unitStat
-        "Stats.stat -> Success"
+
+    getStatExpectSuccess
+        "Success"
         (defaultResponseBody [defaultResult])
-        (\eitherModel -> case eitherModel of
-            Left e -> HUnit.assertFailure $ show e
-            Right model -> model @?= defaultModel),
-    unitStatBase
-        "Stats.stat -> HTTPException StatusCodeException"
+        defaultModel,
+
+    getStatsExpectSuccess
+        "Success"
+        (defaultResponseBody [defaultResult { Stats.rows = [defaultRow, defaultRow] }])
+        [defaultModel, defaultModel],
+
+    HUnit.testCase
+        "Get stat -> HTTPException StatusCodeException"
         (Catch.catch
             (do
-                _ <- unitStatRunAction unitStatAction (defaultResponseBody [defaultResult]) HTTPTypes.unauthorized401
+                _ <- runAction statAction (defaultResponseBody [defaultResult]) HTTPTypes.unauthorized401
                 HUnit.assertFailure "StatusCodeException should have been thrown"
             )
-            (\e@(Stats.HTTPException _) ->
+            (\(e :: Stats.StatsException) ->
                 e @?= Stats.HTTPException (show $ HTTP.StatusCodeException HTTPTypes.unauthorized401 [] (HTTP.createCookieJar [])))),
-    unitStat
-        "Stats.stat -> NoValueForRowIndex"
+
+    getStatExpectFailure
+        "NoValueForRowIndex"
         (defaultResponseBody [defaultResult { Stats.rows = [take 2 defaultRow] }])
-        (assertEitherThrown
-            (Stats.NoValueForRowIndex "2")
-            "Should not have row value matching for index 2"),
-    unitStat
-        "Stats.stat -> NoMatchingRow (no rows)"
+        (Stats.NoValueForRowIndex "2")
+        "Should not have row value matching for index 2",
+
+    getStatExpectFailure
+        "NoValueForRowIndex"
+        (defaultResponseBody [defaultResult { Stats.rows = [take 2 defaultRow] }])
+        (Stats.NoValueForRowIndex "2")
+        "Should not have row value matching for index 2",
+
+    getStatExpectFailure
+        "NoMatchingRow (no rows)"
         (defaultResponseBody [defaultResult { Stats.rows = [] }])
-        (assertEitherThrown
-            (Stats.NoMatchingRow $ show defaultRowIdentifier)
-            ("Should not have row with matching identifier: " ++ show defaultRowIdentifier)),
-    unitStat
-        "Stats.stat -> NoMatchingRow (no key value)"
+        (Stats.NoMatchingRow $ show defaultRowIdentifier)
+        ("Should not have row with matching identifier: " ++ show defaultRowIdentifier),
+
+    getStatExpectFailure
+        "NoMatchingRow (no key value)"
         (defaultResponseBody [defaultResult { Stats.rows = [[]] }])
-        (assertEitherThrown
-            (Stats.NoMatchingRow $ show defaultRowIdentifier)
-            ("Should not have row with matching identifier: " ++ show defaultRowIdentifier)),
-    unitStat
-        "Stats.stat -> NoMatchingRow (JSON parse error for key value)"
+        (Stats.NoMatchingRow $ show defaultRowIdentifier)
+        ("Should not have row with matching identifier: " ++ show defaultRowIdentifier),
+
+    getStatExpectFailure
+        "NoMatchingRow (JSON parse error for key value)"
         (let rowWithBadValue = Aeson.Number 99 : defaultRow in defaultResponseBody [defaultResult { Stats.rows = [rowWithBadValue] }])
-        (assertEitherThrown
-            (Stats.NoMatchingRow $ show defaultRowIdentifier)
-            ("Should not have row with matching identifier: " ++ show defaultRowIdentifier)),
-    unitStat
-        "Stats.stat -> NoMatchingResult"
+        (Stats.NoMatchingRow $ show defaultRowIdentifier)
+        ("Should not have row with matching identifier: " ++ show defaultRowIdentifier),
+
+    getStatExpectFailure
+        "NoMatchingResult"
         (defaultResponseBody [])
-        (assertEitherThrown
-            (Stats.NoMatchingResult $ Text.unpack defaultResultName)
-            ("Should not have matching result:" ++ Text.unpack defaultResultName)),
-    unitStat
-        "Stats.stat -> NoKeyInColumns"
+        (Stats.NoMatchingResult $ Text.unpack defaultResultName)
+        ("Should not have matching result:" ++ Text.unpack defaultResultName),
+
+    getStatExpectFailure
+        "NoKeyInColumns"
         (defaultResponseBody [defaultResult { Stats.columns = [] }])
-        (assertEitherThrown
-            (Stats.NoKeyInColumns $ Text.unpack defaultColumnsKey)
-            ("Should not have key in columns: " ++ Text.unpack defaultColumnsKey)),
-    unitStat
-        "Stats.stat -> TableConversionError (type mismatch)"
+        (Stats.NoKeyInColumns $ Text.unpack defaultColumnsKey)
+        ("Should not have key in columns: " ++ Text.unpack defaultColumnsKey),
+
+    getStatExpectFailure
+        "TableConversionError (type mismatch)"
         (defaultResponseBody [defaultResult { Stats.rows = [[Aeson.String defaultRowIdentifier, Aeson.String $ Text.pack $ show (a defaultModel), Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]] }])
-        (assertEitherThrown (Stats.TableConversionError "failed to parse field A: expected Integral, encountered String")
-        "Should not convert because of field is wrong type"),
-    unitStat
-        "Stats.stat -> TableConversionError (missing field)"
+        (Stats.TableConversionError "failed to parse field A: expected Integral, encountered String")
+        "Should not convert because of field is wrong type",
+
+    getStatExpectFailure
+        "TableConversionError (missing field)"
         (defaultResponseBody [defaultResult { Stats.columns = take (length defaultColumns - 1) defaultColumns }])
-        (assertEitherThrown
-            (Stats.TableConversionError "key \"C\" not present")
-            "Should not convert because field is missing"),
-    unitStat
-        "Stats.stat -> PayloadDecodeError (for Resource)"
+        (Stats.TableConversionError "key \"C\" not present")
+        "Should not convert because field is missing",
+
+    getStatExpectFailure
+        "PayloadDecodeError (for Resource)"
         (Aeson.encode [defaultResult])
-        (assertEitherThrown
-            (Stats.PayloadDecodeError "Error in $: expected Resource, encountered Array")
-            "Should not be able to decode invalid JSON"),
-    unitStats
-        "Stats.stats -> Success"
-        (defaultResponseBody [defaultResult { Stats.rows = [defaultRow, defaultRow] }])
-        (\eitherModels -> case eitherModels of
-            Left e -> HUnit.assertFailure $ show e
-            Right models -> models @?= [defaultModel, defaultModel]),
+        (Stats.PayloadDecodeError "Error in $: expected Resource, encountered Array")
+        "Should not be able to decode invalid JSON",
+
     HUnit.testCase
         "parseJSON invalid :: Parser Result -> Error"
         (case Aeson.fromJSON $ Aeson.String "foo" :: Aeson.Result Stats.Result of
@@ -127,25 +134,29 @@ propertyStatsExceptionShow constructor exception =
         testName = "show (" ++ exception ++ " message) == \"StatsException (" ++ exception ++ " message)\""
         property message = show (constructor message) == "StatsException (" ++ exception ++ " " ++ message ++ ")"
 
-assertEitherThrown :: Catch.Exception e => Stats.StatsException -> String -> Either e MockModel -> IO ()
-assertEitherThrown exception failureMessage eitherModel =
-    case eitherModel of
-        Left someE -> Catch.catch
-            (Catch.throwM someE)
-            (\(e :: Stats.StatsException) -> e @?= exception)
-        Right (_ :: MockModel) -> HUnit.assertFailure failureMessage
+getStatExpectFailure :: Tasty.TestName -> ByteString.ByteString -> Stats.StatsException -> String -> Tasty.TestTree
+getStatExpectFailure testName responseBody expectedException failureMessage =
+    HUnit.testCase ("Get stat -> " <> testName) $ Catch.catch
+        (runAction statAction responseBody HTTPTypes.ok200 >> HUnit.assertFailure failureMessage)
+        (\(actualException :: Stats.StatsException) -> actualException @?= expectedException)
 
-unitStat :: Tasty.TestName -> ByteString.ByteString -> (Either Catch.SomeException MockModel -> IO ()) -> Tasty.TestTree
-unitStat = unitStatAssertEither unitStatAction
+expectSuccess :: (Eq a, Show a) => (HTTP.Manager -> MonadHTTP.MockHTTP IO a) -> Tasty.TestName -> ByteString.ByteString -> a -> Tasty.TestTree
+expectSuccess action testName responseBody expected =
+    HUnit.testCase testName $ Catch.catchAll
+        (runAction action responseBody HTTPTypes.ok200 >>= (@?= expected))
+        (HUnit.assertFailure . Catch.displayException)
 
-unitStats :: Tasty.TestName -> ByteString.ByteString -> (Either Catch.SomeException [MockModel] -> IO ()) -> Tasty.TestTree
-unitStats = unitStatAssertEither $ Stats.stats "mockmodels" defaultResultName defaultParams
+getStatsExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> [MockModel] -> Tasty.TestTree
+getStatsExpectSuccess name = expectSuccess (Stats.getStats "mockmodels" defaultResultName defaultParams) $ "Get stats -> " <> name
 
-unitStatAction :: HTTP.Manager -> MonadHTTP.MockHTTP IO (Either Catch.SomeException MockModel)
-unitStatAction = Stats.stat "mockmodels" defaultResultName defaultColumnsKey defaultRowIdentifier defaultParams
+getStatExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> MockModel -> Tasty.TestTree
+getStatExpectSuccess name = expectSuccess statAction $ "Get stat -> " <> name
 
-unitStatRunAction :: (HTTP.Manager -> MonadHTTP.MockHTTP IO a) -> ByteString.ByteString -> HTTPTypes.Status -> IO a
-unitStatRunAction action responseBody responseStatus = do
+statAction :: HTTP.Manager -> MonadHTTP.MockHTTP IO MockModel
+statAction = Stats.getStat "mockmodels" defaultResultName defaultColumnsKey defaultRowIdentifier defaultParams
+
+runAction :: (HTTP.Manager -> MonadHTTP.MockHTTP IO a) -> ByteString.ByteString -> HTTPTypes.Status -> IO a
+runAction action responseBody responseStatus = do
     manager <- HTTP.newManager HTTP.tlsManagerSettings
     MonadHTTP.runMockHTTP
         (action manager)
@@ -157,15 +168,6 @@ unitStatRunAction action responseBody responseStatus = do
             HTTP.responseCookieJar = HTTP.createCookieJar [],
             HTTPInternal.responseClose' = HTTPInternal.ResponseClose (return () :: IO ())
         }
-
-unitStatBase :: Tasty.TestName
-                       -> HUnit.Assertion -> Tasty.TestTree
-unitStatBase = HUnit.testCase
-
-unitStatAssertEither :: (HTTP.Manager -> MonadHTTP.MockHTTP IO a) -> Tasty.TestName -> ByteString.ByteString -> (a -> IO ()) -> Tasty.TestTree
-unitStatAssertEither function testName responseBody assert = unitStatBase testName $ do
-    eitherModel <- unitStatRunAction function responseBody HTTPTypes.ok200
-    assert eitherModel
 
 defaultParams :: Stats.Parameters
 defaultParams = [("param", Just "value")]
