@@ -40,12 +40,12 @@ tests = Tasty.testGroup "NBA.Stats" [
     propertyStatsExceptionShow Stats.NoValueForRowIndex "NoValueForRowIndex",
     propertyStatsExceptionShow Stats.TableConversionError "TableConversionError",
 
-    getStatExpectSuccess
+    getSplitRowExpectSuccess
         "Success"
         (defaultResponseBody [defaultSplit])
         defaultModel,
 
-    getStatsExpectSuccess
+    getSplitRowsExpectSuccess
         "Success"
         (defaultResponseBody [defaultSplit { Stats.rows = [defaultRow, defaultRow] }])
         [defaultModel, defaultModel],
@@ -60,61 +60,61 @@ tests = Tasty.testGroup "NBA.Stats" [
             (\(e :: Stats.StatsException) ->
                 e @?= Stats.HTTPException (show $ HTTP.StatusCodeException HTTPTypes.unauthorized401 [] (HTTP.createCookieJar [])))),
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "NoValueForRowIndex"
         (defaultResponseBody [defaultSplit { Stats.rows = [take 2 defaultRow] }])
         (Stats.NoValueForRowIndex "2")
         "Should not have row value matching for index 2",
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "NoValueForRowIndex"
         (defaultResponseBody [defaultSplit { Stats.rows = [take 2 defaultRow] }])
         (Stats.NoValueForRowIndex "2")
         "Should not have row value matching for index 2",
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "NoMatchingRow (no rows)"
         (defaultResponseBody [defaultSplit { Stats.rows = [] }])
         (Stats.NoMatchingRow $ show defaultRowIdentifier)
         ("Should not have row with matching identifier: " ++ show defaultRowIdentifier),
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "NoMatchingRow (no key value)"
         (defaultResponseBody [defaultSplit { Stats.rows = [[]] }])
         (Stats.NoMatchingRow $ show defaultRowIdentifier)
         ("Should not have row with matching identifier: " ++ show defaultRowIdentifier),
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "NoMatchingRow (JSON parse error for key value)"
         (let rowWithBadValue = Aeson.Number 99 : defaultRow in defaultResponseBody [defaultSplit { Stats.rows = [rowWithBadValue] }])
         (Stats.NoMatchingRow $ show defaultRowIdentifier)
         ("Should not have row with matching identifier: " ++ show defaultRowIdentifier),
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "NoMatchingSplit"
         (defaultResponseBody [])
         (Stats.NoMatchingSplit $ Text.unpack defaultSplitName)
         ("Should not have matching split:" ++ Text.unpack defaultSplitName),
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "NoKeyInColumns"
         (defaultResponseBody [defaultSplit { Stats.columns = [] }])
         (Stats.NoKeyInColumns $ Text.unpack defaultColumnsKey)
         ("Should not have key in columns: " ++ Text.unpack defaultColumnsKey),
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "TableConversionError (type mismatch)"
         (defaultResponseBody [defaultSplit { Stats.rows = [[Aeson.String defaultRowIdentifier, Aeson.String $ Text.pack $ show (a defaultModel), Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]] }])
         (Stats.TableConversionError "failed to parse field A: expected Integral, encountered String")
         "Should not convert because of field is wrong type",
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "TableConversionError (missing field)"
         (defaultResponseBody [defaultSplit { Stats.columns = take (length defaultColumns - 1) defaultColumns }])
         (Stats.TableConversionError "key \"C\" not present")
         "Should not convert because field is missing",
 
-    getStatExpectFailure
+    getSplitRowExpectFailure
         "PayloadDecodeError (for Stats)"
         (Aeson.encode [defaultSplit])
         (Stats.PayloadDecodeError "Error in $: expected Stats, encountered Array")
@@ -134,8 +134,8 @@ propertyStatsExceptionShow constructor exception =
         testName = "show (" ++ exception ++ " message) == \"StatsException (" ++ exception ++ " message)\""
         property message = show (constructor message) == "StatsException (" ++ exception ++ " " ++ message ++ ")"
 
-getStatExpectFailure :: Tasty.TestName -> ByteString.ByteString -> Stats.StatsException -> String -> Tasty.TestTree
-getStatExpectFailure testName responseBody expectedException failureMessage =
+getSplitRowExpectFailure :: Tasty.TestName -> ByteString.ByteString -> Stats.StatsException -> String -> Tasty.TestTree
+getSplitRowExpectFailure testName responseBody expectedException failureMessage =
     HUnit.testCase ("Get stat -> " <> testName) $ Catch.catch
         (runAction statAction responseBody HTTPTypes.ok200 >> HUnit.assertFailure failureMessage)
         (\(actualException :: Stats.StatsException) -> actualException @?= expectedException)
@@ -146,11 +146,11 @@ expectSuccess action testName responseBody expected =
         (runAction action responseBody HTTPTypes.ok200 >>= (@?= expected))
         (HUnit.assertFailure . Catch.displayException)
 
-getStatsExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> [MockModel] -> Tasty.TestTree
-getStatsExpectSuccess name = expectSuccess (Stats.getSplitRows "mockmodels" defaultSplitName defaultParams) $ "Get stats -> " <> name
+getSplitRowsExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> [MockModel] -> Tasty.TestTree
+getSplitRowsExpectSuccess name = expectSuccess (Stats.getSplitRows "mockmodels" defaultSplitName defaultParams) $ "Get stats -> " <> name
 
-getStatExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> MockModel -> Tasty.TestTree
-getStatExpectSuccess name = expectSuccess statAction $ "Get stat -> " <> name
+getSplitRowExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> MockModel -> Tasty.TestTree
+getSplitRowExpectSuccess name = expectSuccess statAction $ "Get stat -> " <> name
 
 statAction :: HTTP.Manager -> MonadHTTP.MockHTTP IO MockModel
 statAction = Stats.getSplitRow "mockmodels" defaultSplitName defaultColumnsKey defaultRowIdentifier defaultParams
