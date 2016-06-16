@@ -32,7 +32,6 @@ tests = Tasty.testGroup "NBA.Stats" [
             request <- Stats.getRequest $ Char8.pack path
             model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
             return $ show request == show model,
-    propertyStatsExceptionShow Stats.HTTPException "HTTPException",
     propertyStatsExceptionShow Stats.PayloadDecodeError "PayloadDecodeError",
     propertyStatsExceptionShow Stats.NoMatchingSplit "NoMatchingSplit",
     propertyStatsExceptionShow Stats.NoMatchingRow "NoMatchingRow",
@@ -49,16 +48,6 @@ tests = Tasty.testGroup "NBA.Stats" [
         "Success"
         (defaultResponseBody [defaultSplit { Stats.rows = [defaultRow, defaultRow] }])
         [defaultModel, defaultModel],
-
-    HUnit.testCase
-        "Get stat -> HTTPException StatusCodeException"
-        (Catch.catch
-            (do
-                _ <- runAction statAction (defaultResponseBody [defaultSplit]) HTTPTypes.unauthorized401
-                HUnit.assertFailure "StatusCodeException should have been thrown"
-            )
-            (\(e :: Stats.StatsException) ->
-                e @?= Stats.HTTPException (show $ HTTP.StatusCodeException HTTPTypes.unauthorized401 [] (HTTP.createCookieJar [])))),
 
     getSplitRowExpectFailure
         "NoValueForRowIndex"

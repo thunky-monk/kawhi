@@ -42,13 +42,13 @@ domain = "stats.nba.com"
 
 getSplitRows :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Aeson.FromJSON a) => Path -> SplitName -> Parameters -> HTTP.Manager -> m [a]
 getSplitRows path splitName params manager = do
-    response <- catchHTTP $ get path params manager
+    response <- get path params manager
     split <- findSplit response splitName
     Monad.forM (rows split) $ convertTable (columns split)
 
 getSplitRow :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> m a
 getSplitRow path splitName key value params manager = do
-    response <- catchHTTP $ get path params manager
+    response <- get path params manager
     split <- findSplit response splitName
     keyIndex <- maybe
         (Catch.throwM $ NoKeyInColumns $ Text.unpack key)
@@ -151,16 +151,9 @@ get :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m) => Path -> P
 get path params manager = do
     initRequest <- getRequest path
     let request = HTTP.setQueryString params initRequest
-    catchHTTP $ MonadHTTP.performRequest request manager
-
-catchHTTP :: (Trans.MonadIO m, Catch.MonadCatch m) => m a -> m a
-catchHTTP f =
-    Catch.catch
-        f
-        (\(e :: HTTP.HttpException) -> Catch.throwM . HTTPException $ show e)
+    MonadHTTP.performRequest request manager
 
 data StatsException =
-    HTTPException String |
     PayloadDecodeError String |
     NoMatchingSplit String |
     NoMatchingRow String |
@@ -173,7 +166,6 @@ instance Show StatsException where
     show nbaException = "StatsException (" ++ showCase nbaException ++ ")"
         where
             showCase exception = case exception of
-                HTTPException message -> format "HTTPException" message
                 PayloadDecodeError message -> format "PayloadDecodeError" message
                 NoMatchingSplit message -> format "NoMatchingSplit" message
                 NoMatchingRow message -> format "NoMatchingRow" message
