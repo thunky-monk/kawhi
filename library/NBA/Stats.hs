@@ -9,12 +9,12 @@ module NBA.Stats (
     getRequest,
     Parameters,
     Path,
-    Resource(..),
-    Result(..),
-    ResultName,
+    Stats(..),
+    Split(..),
+    SplitName,
     Row,
-    getStat,
-    getStats,
+    getSplitRow,
+    getSplitRows,
     StatsException(..)
 ) where
 
@@ -40,20 +40,20 @@ import qualified Safe
 domain :: SBS.ByteString
 domain = "stats.nba.com"
 
-getStats :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Aeson.FromJSON a) => Path -> ResultName -> Parameters -> HTTP.Manager -> m [a]
-getStats path resultName params manager = do
+getSplitRows :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Aeson.FromJSON a) => Path -> SplitName -> Parameters -> HTTP.Manager -> m [a]
+getSplitRows path splitName params manager = do
     response <- catchHTTP $ get path params manager
-    result <- findResult response resultName
-    Monad.forM (rows result) $ convertTable (columns result)
+    split <- findSplit response splitName
+    Monad.forM (rows split) $ convertTable (columns split)
 
-getStat :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> ResultName -> Column -> v -> Parameters -> HTTP.Manager -> m a
-getStat path resultName key value params manager = do
+getSplitRow :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> m a
+getSplitRow path splitName key value params manager = do
     response <- catchHTTP $ get path params manager
-    result <- findResult response resultName
+    split <- findSplit response splitName
     keyIndex <- maybe
         (Catch.throwM $ NoKeyInColumns $ Text.unpack key)
         return
-        (List.elemIndex key (columns result))
+        (List.elemIndex key (columns split))
     row <- maybe
         (Catch.throwM $ NoMatchingRow $ show value)
         return
@@ -64,8 +64,8 @@ getStat path resultName key value params manager = do
                     Just v -> case Aeson.parseMaybe Aeson.parseJSON v of
                         Nothing -> False
                         Just a -> a == value)
-            (rows result))
-    convertTable (columns result) row
+            (rows split))
+    convertTable (columns split) row
 
 type Column = Text.Text
 
@@ -75,41 +75,41 @@ type Parameters = [(SBS.ByteString, Maybe SBS.ByteString)]
 
 type Path = SBS.ByteString
 
-type ResultName = Text.Text
+type SplitName = Text.Text
 
-data Result = Result {
-    name :: ResultName,
+data Split = Split {
+    name :: SplitName,
     columns :: [Column],
     rows :: [Row]
 } deriving (Show, Eq)
 
-instance Aeson.FromJSON Result where
+instance Aeson.FromJSON Split where
     parseJSON (Aeson.Object v) = do
         name <- v .: "name"
         columns <- v .: "headers"
         rows <- v .: "rowSet"
-        return Result {..}
-    parseJSON invalid = Aeson.typeMismatch "Result" invalid
+        return Split {..}
+    parseJSON invalid = Aeson.typeMismatch "Split" invalid
 
-instance Aeson.ToJSON Result where
-    toJSON Result {..} = Aeson.object [
+instance Aeson.ToJSON Split where
+    toJSON Split {..} = Aeson.object [
         "name" .= name,
         "headers" .= columns,
         "rowSet" .= rows]
 
-data Resource = Resource {
-    results :: [Result]
+data Stats = Stats {
+    splits :: [Split]
 } deriving (Show, Eq)
 
-instance Aeson.ToJSON Resource where
-    toJSON Resource {..} = Aeson.object [
-        "resultSets" .= results]
+instance Aeson.ToJSON Stats where
+    toJSON Stats {..} = Aeson.object [
+        "resultSets" .= splits]
 
-instance Aeson.FromJSON Resource where
+instance Aeson.FromJSON Stats where
     parseJSON (Aeson.Object o) = do
-        results <- o .: "resultSets"
-        return Resource {..}
-    parseJSON invalid = Aeson.typeMismatch "Resource" invalid
+        splits <- o .: "resultSets"
+        return Stats {..}
+    parseJSON invalid = Aeson.typeMismatch "Stats" invalid
 
 convertTable :: (Catch.MonadThrow m, Aeson.FromJSON a) => [Column] -> Row -> m a
 convertTable columns row = do
@@ -124,18 +124,18 @@ convertTable columns row = do
         columns
     case Aeson.parse Aeson.parseJSON object of
         Aeson.Error message -> Catch.throwM $ TableConversionError message
-        Aeson.Success result -> return result
+        Aeson.Success split -> return split
 
-findResult :: Catch.MonadThrow m => HTTP.Response LBS.ByteString -> ResultName -> m Result
-findResult response resultName = do
-    resource <- either
+findSplit :: Catch.MonadThrow m => HTTP.Response LBS.ByteString -> SplitName -> m Split
+findSplit response splitName = do
+    stats <- either
         (Catch.throwM . PayloadDecodeError)
         return
         (Aeson.eitherDecode . HTTP.responseBody $ response)
     maybe
-        (Catch.throwM $ NoMatchingResult $ Text.unpack resultName)
+        (Catch.throwM $ NoMatchingSplit $ Text.unpack splitName)
         return
-        (List.find (\r -> name r == resultName) $ results resource)
+        (List.find (\r -> name r == splitName) $ splits stats)
 
 getRequest :: Trans.MonadIO m => Path -> m HTTP.Request
 getRequest path = do
@@ -162,7 +162,7 @@ catchHTTP f =
 data StatsException =
     HTTPException String |
     PayloadDecodeError String |
-    NoMatchingResult String |
+    NoMatchingSplit String |
     NoMatchingRow String |
     NoValueForRowIndex String |
     NoKeyInColumns String |
@@ -175,7 +175,7 @@ instance Show StatsException where
             showCase exception = case exception of
                 HTTPException message -> format "HTTPException" message
                 PayloadDecodeError message -> format "PayloadDecodeError" message
-                NoMatchingResult message -> format "NoMatchingResult" message
+                NoMatchingSplit message -> format "NoMatchingSplit" message
                 NoMatchingRow message -> format "NoMatchingRow" message
                 NoValueForRowIndex message -> format "NoValueForRowIndex" message
                 NoKeyInColumns message -> format "NoKeyInColumns" message

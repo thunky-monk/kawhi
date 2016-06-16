@@ -41,7 +41,7 @@ instance Aeson.FromJSON Team where
     parseJSON invalid = Aeson.typeMismatch "Team" invalid
 
 teams :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m) => HTTP.Manager -> m [Team]
-teams = Stats.getStats path result (HashMap.toList defaultParameters)
+teams = Stats.getSplitRows path result (HashMap.toList defaultParameters)
 
 data Traditional = Traditional {
     gamesPlayed :: Integer,
@@ -90,7 +90,7 @@ instance Aeson.FromJSON Traditional where
     parseJSON invalid = Aeson.typeMismatch "Traditional" invalid
 
 traditional :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m) => Team -> HTTP.Manager -> m Traditional
-traditional team = Stats.getStat path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
+traditional team = Stats.getSplitRow path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
 
 data Misc = Misc {
     pointsOffTurnovers :: Double,
@@ -113,7 +113,7 @@ misc team =
     let
         miscParams = HashMap.adjust (const $ Just "Misc") "MeasureType" defaultParameters
     in
-        Stats.getStat path result "TEAM_ID" (identifier team) (HashMap.toList miscParams)
+        Stats.getSplitRow path result "TEAM_ID" (identifier team) (HashMap.toList miscParams)
 
 defaultParameters :: HashMap.HashMap SBS.ByteString (Maybe SBS.ByteString)
 defaultParameters = HashMap.fromList [
