@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -10,7 +11,7 @@ module NBA.Stats.Team (
     Traditional(..)
 ) where
 
-import qualified Control.Monad.Catch as Catch
+import qualified Control.Monad.Except as Except
 import qualified Control.Monad.HTTP as MonadHTTP
 import qualified Control.Monad.Trans as Trans
 import qualified Data.Aeson as Aeson
@@ -40,8 +41,8 @@ instance Aeson.FromJSON Team where
         return Team {..}
     parseJSON invalid = Aeson.typeMismatch "Team" invalid
 
-teams :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m) => HTTP.Manager -> m [Team]
-teams = Stats.getSplitRows path result (HashMap.toList defaultParameters)
+teams :: (Trans.MonadIO m, Except.MonadError Stats.StatsError m, MonadHTTP.MonadHTTP m) => HTTP.Manager -> m [Team]
+teams = Stats.getSplitRowsGeneric path result (HashMap.toList defaultParameters)
 
 data Traditional = Traditional {
     gamesPlayed :: Integer,
@@ -89,8 +90,8 @@ instance Aeson.FromJSON Traditional where
         return Traditional {..}
     parseJSON invalid = Aeson.typeMismatch "Traditional" invalid
 
-traditional :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m) => Team -> HTTP.Manager -> m Traditional
-traditional team = Stats.getSplitRow path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
+traditional :: (Trans.MonadIO m, Except.MonadError Stats.StatsError m, MonadHTTP.MonadHTTP m) => Team -> HTTP.Manager -> m Traditional
+traditional team = Stats.getSplitRowGeneric path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
 
 data Misc = Misc {
     pointsOffTurnovers :: Double,
@@ -108,12 +109,12 @@ instance Aeson.FromJSON Misc where
         return Misc {..}
     parseJSON invalid = Aeson.typeMismatch "Misc" invalid
 
-misc :: (Trans.MonadIO m, Catch.MonadCatch m, MonadHTTP.MonadHTTP m) => Team -> HTTP.Manager -> m Misc
+misc :: (Trans.MonadIO m, Except.MonadError Stats.StatsError m, MonadHTTP.MonadHTTP m) => Team -> HTTP.Manager -> m Misc
 misc team =
     let
         miscParams = HashMap.adjust (const $ Just "Misc") "MeasureType" defaultParameters
     in
-        Stats.getSplitRow path result "TEAM_ID" (identifier team) (HashMap.toList miscParams)
+        Stats.getSplitRowGeneric path result "TEAM_ID" (identifier team) (HashMap.toList miscParams)
 
 defaultParameters :: HashMap.HashMap SBS.ByteString (Maybe SBS.ByteString)
 defaultParameters = HashMap.fromList [
