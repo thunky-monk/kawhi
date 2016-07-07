@@ -1,4 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Monad.HTTP (
     MockHTTP,
@@ -7,6 +10,7 @@ module Control.Monad.HTTP (
 ) where
 
 import qualified Control.Monad.Catch as Catch
+import qualified Control.Monad.Except as Except
 import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.Trans as Trans
 import qualified Data.ByteString.Lazy as LBS
@@ -25,6 +29,9 @@ newtype MockHTTP m a = MockHTTP (Reader.ReaderT (HTTP.Response LBS.ByteString) m
 runMockHTTP :: MockHTTP m a -> HTTP.Response LBS.ByteString -> m a
 runMockHTTP (MockHTTP reader) = Reader.runReaderT reader
 
+mockHTTP :: (HTTP.Response LBS.ByteString -> m a) -> MockHTTP m a
+mockHTTP r = MockHTTP $ Reader.ReaderT r
+
 instance Catch.MonadThrow m => MonadHTTP (MockHTTP m) where
     performRequest _ _ = check
         where
@@ -34,3 +41,12 @@ instance Catch.MonadThrow m => MonadHTTP (MockHTTP m) where
                 if status >= HTTP.ok200 && status < HTTP.multipleChoices300
                     then return response
                     else Catch.throwM $ HTTP.StatusCodeException status [] (HTTP.createCookieJar [])
+
+instance Trans.MonadIO m => MonadHTTP (Except.ExceptT e m) where
+    performRequest = HTTP.httpLbs
+
+instance Except.MonadError e m => Except.MonadError e (MockHTTP m) where
+    throwError = Trans.lift . Except.throwError
+    catchError m f = mockHTTP $ \r -> Except.catchError
+        (runMockHTTP m r)
+        (\e -> runMockHTTP (f e) r)
