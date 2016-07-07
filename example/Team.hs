@@ -1,19 +1,13 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module NBA.Stats.Team (
-    misc,
-    Misc(..),
+module Team (
     teams,
     Team(..),
-    traditional,
-    Traditional(..)
+    split,
+    Split(..)
 ) where
 
-import qualified Control.Monad.Except as Except
-import qualified Control.Monad.HTTP as MonadHTTP
-import qualified Control.Monad.Trans as Trans
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
@@ -41,10 +35,10 @@ instance Aeson.FromJSON Team where
         return Team {..}
     parseJSON invalid = Aeson.typeMismatch "Team" invalid
 
-teams :: (Trans.MonadIO m, Except.MonadError Stats.StatsError m, MonadHTTP.MonadHTTP m) => HTTP.Manager -> m [Team]
-teams = Stats.getSplitRowsGeneric path result (HashMap.toList defaultParameters)
+teams :: HTTP.Manager -> IO (Either Stats.StatsError [Team])
+teams = Stats.getSplitRows path result (HashMap.toList defaultParameters)
 
-data Traditional = Traditional {
+data Split = Split {
     gamesPlayed :: Integer,
     minutesPlayed :: Double,
     fieldGoalsMade :: Double,
@@ -66,7 +60,7 @@ data Traditional = Traditional {
     plusMinus :: Double
 } deriving (Show, Eq)
 
-instance Aeson.FromJSON Traditional where
+instance Aeson.FromJSON Split where
     parseJSON (Aeson.Object o) = do
         gamesPlayed <- o .: "GP"
         minutesPlayed <- o .: "MIN"
@@ -87,34 +81,11 @@ instance Aeson.FromJSON Traditional where
         personalFoulsDrawn <- o .: "PFD"
         points <- o .: "PTS"
         plusMinus <- o .: "PLUS_MINUS"
-        return Traditional {..}
-    parseJSON invalid = Aeson.typeMismatch "Traditional" invalid
+        return Split {..}
+    parseJSON invalid = Aeson.typeMismatch "Split" invalid
 
-traditional :: (Trans.MonadIO m, Except.MonadError Stats.StatsError m, MonadHTTP.MonadHTTP m) => Team -> HTTP.Manager -> m Traditional
-traditional team = Stats.getSplitRowGeneric path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
-
-data Misc = Misc {
-    pointsOffTurnovers :: Double,
-    secondChancePoints :: Double,
-    fastBreakPoints :: Double,
-    pointsInThePaint :: Double
-} deriving (Show, Eq)
-
-instance Aeson.FromJSON Misc where
-    parseJSON (Aeson.Object o) = do
-        pointsOffTurnovers <- o .: "PTS_OFF_TOV"
-        secondChancePoints <- o .: "PTS_2ND_CHANCE"
-        fastBreakPoints <- o .: "PTS_FB"
-        pointsInThePaint <- o .: "PTS_PAINT"
-        return Misc {..}
-    parseJSON invalid = Aeson.typeMismatch "Misc" invalid
-
-misc :: (Trans.MonadIO m, Except.MonadError Stats.StatsError m, MonadHTTP.MonadHTTP m) => Team -> HTTP.Manager -> m Misc
-misc team =
-    let
-        miscParams = HashMap.adjust (const $ Just "Misc") "MeasureType" defaultParameters
-    in
-        Stats.getSplitRowGeneric path result "TEAM_ID" (identifier team) (HashMap.toList miscParams)
+split :: Team -> HTTP.Manager -> IO (Either Stats.StatsError Split)
+split team = Stats.getSplitRow path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
 
 defaultParameters :: HashMap.HashMap SBS.ByteString (Maybe SBS.ByteString)
 defaultParameters = HashMap.fromList [

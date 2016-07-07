@@ -51,7 +51,7 @@ getSplitRowsGeneric path splitName params manager = do
     split <- findSplit response splitName
     Monad.forM (rows split) $ convertTable (columns split)
 
-getSplitRow :: (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> IO (Either StatsError [a])
+getSplitRow :: (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> IO (Either StatsError a)
 getSplitRow path splitName key value params manager = Except.runExceptT $ getSplitRowGeneric path splitName key value params manager
 
 getSplitRowGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> m a
