@@ -30,33 +30,33 @@ import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:), (.=))
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as SBS
-import qualified Data.Default as Default
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import Data.Monoid ((<>))
 import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Text as Text
-import qualified Network.HTTP.Conduit as HTTP
+import qualified Network.HTTP.Client as HTTP
+import qualified Network.HTTP.Simple as HTTP
 import qualified Safe
 
 domain :: SBS.ByteString
 domain = "stats.nba.com"
 
-getSplitRows :: (Aeson.FromJSON a) => Path -> SplitName -> Parameters -> HTTP.Manager -> IO (Either StatsError [a])
-getSplitRows path splitName params manager = Except.runExceptT $ getSplitRowsGeneric path splitName params manager
+getSplitRows :: (Aeson.FromJSON a) => Path -> SplitName -> Parameters -> IO (Either StatsError [a])
+getSplitRows path splitName params = Except.runExceptT $ getSplitRowsGeneric path splitName params
 
-getSplitRowsGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Aeson.FromJSON a) => Path -> SplitName -> Parameters -> HTTP.Manager -> m [a]
-getSplitRowsGeneric path splitName params manager = do
-    response <- get path params manager
+getSplitRowsGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Aeson.FromJSON a) => Path -> SplitName -> Parameters -> m [a]
+getSplitRowsGeneric path splitName params = do
+    response <- get path params
     split <- findSplit response splitName
     Monad.forM (rows split) $ convertTable (columns split)
 
-getSplitRow :: (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> IO (Either StatsError a)
-getSplitRow path splitName key value params manager = Except.runExceptT $ getSplitRowGeneric path splitName key value params manager
+getSplitRow :: (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> IO (Either StatsError a)
+getSplitRow path splitName key value params = Except.runExceptT $ getSplitRowGeneric path splitName key value params
 
-getSplitRowGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> m a
-getSplitRowGeneric path splitName key value params manager = do
-    response <- get path params manager
+getSplitRowGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> m a
+getSplitRowGeneric path splitName key value params = do
+    response <- get path params
     split <- findSplit response splitName
     keyIndex <- maybe
         (Except.throwError $ NoKeyInColumns $ Text.unpack key)
@@ -145,21 +145,16 @@ findSplit response splitName = do
         return
         (List.find (\r -> name r == splitName) $ splits stats)
 
-getRequest :: Trans.MonadIO m => Path -> m HTTP.Request
-getRequest path = do
-    initRequest <- Trans.liftIO (Default.def :: IO HTTP.Request)
-    return initRequest {
-        HTTP.method = "GET",
-        HTTP.secure = False,
-        HTTP.host = domain,
-        HTTP.path = "/stats/" <> path
-    }
+getRequest :: Path -> HTTP.Request
+getRequest path = HTTP.defaultRequest {
+    HTTP.method = "GET",
+    HTTP.secure = False,
+    HTTP.host = domain,
+    HTTP.path = "/stats/" <> path
+}
 
-get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => Path -> Parameters -> HTTP.Manager -> m (HTTP.Response LBS.ByteString)
-get path params manager = do
-    initRequest <- getRequest path
-    let request = HTTP.setQueryString params initRequest
-    MonadHTTP.performRequest request manager
+get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => Path -> Parameters -> m (HTTP.Response LBS.ByteString)
+get path params = MonadHTTP.performRequest $ HTTP.setQueryString params $ getRequest path
 
 data StatsError =
     PayloadDecodeError String |

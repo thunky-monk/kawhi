@@ -15,7 +15,6 @@ import qualified Data.ByteString as SBS
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Text as Text
 import qualified NBA.Stats as Stats
-import qualified Network.HTTP.Conduit as HTTP
 
 path :: SBS.ByteString
 path = "leaguedashteamstats"
@@ -35,7 +34,7 @@ instance Aeson.FromJSON Team where
         return Team {..}
     parseJSON invalid = Aeson.typeMismatch "Team" invalid
 
-teams :: HTTP.Manager -> IO (Either Stats.StatsError [Team])
+teams :: IO (Either Stats.StatsError [Team])
 teams = Stats.getSplitRows path result (HashMap.toList defaultParameters)
 
 data Split = Split {
@@ -84,7 +83,7 @@ instance Aeson.FromJSON Split where
         return Split {..}
     parseJSON invalid = Aeson.typeMismatch "Split" invalid
 
-split :: Team -> HTTP.Manager -> IO (Either Stats.StatsError Split)
+split :: Team -> IO (Either Stats.StatsError Split)
 split team = Stats.getSplitRow path result "TEAM_ID" (identifier team) (HashMap.toList defaultParameters)
 
 defaultParameters :: HashMap.HashMap SBS.ByteString (Maybe SBS.ByteString)

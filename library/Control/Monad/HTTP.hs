@@ -14,14 +14,15 @@ import qualified Control.Monad.Except as Except
 import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.Trans as Trans
 import qualified Data.ByteString.Lazy as LBS
-import qualified Network.HTTP.Conduit as HTTP
+import qualified Network.HTTP.Simple as HTTPSimple
+import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTP
 
 class Monad m => MonadHTTP m where
-    performRequest :: HTTP.Request -> HTTP.Manager -> m (HTTP.Response LBS.ByteString)
+    performRequest :: HTTP.Request -> m (HTTP.Response LBS.ByteString)
 
 instance MonadHTTP IO where
-    performRequest = HTTP.httpLbs
+    performRequest = HTTPSimple.httpLbs
 
 newtype MockHTTP m a = MockHTTP (Reader.ReaderT (HTTP.Response LBS.ByteString) m a)
     deriving (Applicative, Functor, Monad, Trans.MonadTrans, Catch.MonadThrow, Catch.MonadCatch, Trans.MonadIO, Reader.MonadReader (HTTP.Response LBS.ByteString))
@@ -33,7 +34,7 @@ mockHTTP :: (HTTP.Response LBS.ByteString -> m a) -> MockHTTP m a
 mockHTTP r = MockHTTP $ Reader.ReaderT r
 
 instance Catch.MonadThrow m => MonadHTTP (MockHTTP m) where
-    performRequest _ _ = check
+    performRequest _ = check
         where
             check = do
                 response <- Reader.ask
@@ -43,7 +44,7 @@ instance Catch.MonadThrow m => MonadHTTP (MockHTTP m) where
                     else Catch.throwM $ HTTP.StatusCodeException status [] (HTTP.createCookieJar [])
 
 instance Trans.MonadIO m => MonadHTTP (Except.ExceptT e m) where
-    performRequest = HTTP.httpLbs
+    performRequest = HTTPSimple.httpLbs
 
 instance Except.MonadError e m => Except.MonadError e (MockHTTP m) where
     throwError = Trans.lift . Except.throwError

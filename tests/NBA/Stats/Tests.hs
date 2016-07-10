@@ -8,7 +8,6 @@ module NBA.Stats.Tests where
 
 import qualified Control.Monad.Except as Except
 import qualified Control.Monad.HTTP as MonadHTTP
-import qualified Control.Monad.Trans as Trans
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
@@ -17,9 +16,8 @@ import qualified Data.ByteString.Lazy as ByteString
 import Data.Monoid ((<>))
 import qualified Data.Scientific as Sci
 import qualified Data.Text as Text
-import qualified Network.HTTP.Client.Internal as HTTPInternal
-import qualified Network.HTTP.Conduit as HTTP
-import qualified Network.HTTP.Types as HTTPTypes
+import qualified Network.HTTP.Client.Internal as HTTP
+import qualified Network.HTTP.Types as HTTP
 import qualified NBA.Stats as Stats
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
@@ -30,7 +28,7 @@ tests :: Tasty.TestTree
 tests = Tasty.testGroup "NBA.Stats" [
     SC.testProperty "getRequest == HTTP.parseUrl" $
         \path -> SC.monadic $ do
-            request <- Stats.getRequest $ Char8.pack path
+            let request = Stats.getRequest $ Char8.pack path
             model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
             return $ show request == show model,
     propertyStatsErrorShow Stats.PayloadDecodeError "PayloadDecodeFailure",
@@ -116,15 +114,15 @@ propertyStatsErrorShow constructor exception =
 
 getSplitRowExpectFailure :: Tasty.TestName -> ByteString.ByteString -> Stats.StatsError -> Tasty.TestTree
 getSplitRowExpectFailure testName responseBody expected = HUnit.testCase ("Get stat -> " <> testName) $ do
-    eitherModel <- runStatsTest $ runAction statAction responseBody HTTPTypes.ok200
+    eitherModel <- runStatsTest $ runAction statAction responseBody HTTP.ok200
     case eitherModel of
         Left err -> err @?= expected
         Right model -> HUnit.assertFailure $ show model
 
-expectSuccess :: (Eq a, Show a) => (HTTP.Manager -> MonadHTTP.MockHTTP StatsTest a) -> Tasty.TestName -> ByteString.ByteString -> a -> Tasty.TestTree
+expectSuccess :: (Eq a, Show a) => MonadHTTP.MockHTTP StatsTest a -> Tasty.TestName -> ByteString.ByteString -> a -> Tasty.TestTree
 expectSuccess action testName responseBody expected =
     HUnit.testCase testName $ do
-        eitherModel <- runStatsTest $ runAction action responseBody HTTPTypes.ok200
+        eitherModel <- runStatsTest $ runAction action responseBody HTTP.ok200
         case eitherModel of
             Left err -> HUnit.assertFailure $ show err
             Right actual -> actual @?= expected
@@ -135,22 +133,20 @@ getSplitRowsExpectSuccess name = expectSuccess (Stats.getSplitRowsGeneric "mockm
 getSplitRowExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> MockModel -> Tasty.TestTree
 getSplitRowExpectSuccess name = expectSuccess statAction $ "Get stat -> " <> name
 
-statAction :: HTTP.Manager -> MonadHTTP.MockHTTP StatsTest MockModel
+statAction :: MonadHTTP.MockHTTP StatsTest MockModel
 statAction = Stats.getSplitRowGeneric "mockmodels" defaultSplitName defaultColumnsKey defaultRowIdentifier defaultParams
 
-runAction :: (HTTP.Manager -> MonadHTTP.MockHTTP StatsTest a) -> ByteString.ByteString -> HTTPTypes.Status -> StatsTest a
-runAction action responseBody responseStatus = do
-    manager <- Trans.liftIO $ HTTP.newManager HTTP.tlsManagerSettings
-    MonadHTTP.runMockHTTP
-        (action manager)
-        HTTPInternal.Response {
-            HTTP.responseStatus = responseStatus,
-            HTTP.responseVersion = HTTPTypes.http11,
-            HTTP.responseHeaders = [],
-            HTTP.responseBody = responseBody,
-            HTTP.responseCookieJar = HTTP.createCookieJar [],
-            HTTPInternal.responseClose' = HTTPInternal.ResponseClose (return () :: IO ())
-        }
+runAction :: MonadHTTP.MockHTTP StatsTest a -> ByteString.ByteString -> HTTP.Status -> StatsTest a
+runAction action responseBody responseStatus = MonadHTTP.runMockHTTP
+    action
+    HTTP.Response {
+        HTTP.responseStatus = responseStatus,
+        HTTP.responseVersion = HTTP.http11,
+        HTTP.responseHeaders = [],
+        HTTP.responseBody = responseBody,
+        HTTP.responseCookieJar = HTTP.createCookieJar [],
+        HTTP.responseClose' = HTTP.ResponseClose (return () :: IO ())
+    }
 
 defaultParams :: Stats.Parameters
 defaultParams = [("param", Just "value")]
