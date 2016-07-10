@@ -42,21 +42,21 @@ import qualified Safe
 domain :: SBS.ByteString
 domain = "stats.nba.com"
 
-getSplitRows :: (Aeson.FromJSON a) => Path -> SplitName -> Parameters -> HTTP.Manager -> IO (Either StatsError [a])
-getSplitRows path splitName params manager = Except.runExceptT $ getSplitRowsGeneric path splitName params manager
+getSplitRows :: (Aeson.FromJSON a) => Path -> SplitName -> Parameters -> IO (Either StatsError [a])
+getSplitRows path splitName params = Except.runExceptT $ getSplitRowsGeneric path splitName params
 
-getSplitRowsGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Aeson.FromJSON a) => Path -> SplitName -> Parameters -> HTTP.Manager -> m [a]
-getSplitRowsGeneric path splitName params manager = do
-    response <- get path params manager
+getSplitRowsGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Aeson.FromJSON a) => Path -> SplitName -> Parameters -> m [a]
+getSplitRowsGeneric path splitName params = do
+    response <- get path params
     split <- findSplit response splitName
     Monad.forM (rows split) $ convertTable (columns split)
 
-getSplitRow :: (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> IO (Either StatsError a)
-getSplitRow path splitName key value params manager = Except.runExceptT $ getSplitRowGeneric path splitName key value params manager
+getSplitRow :: (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> IO (Either StatsError a)
+getSplitRow path splitName key value params = Except.runExceptT $ getSplitRowGeneric path splitName key value params
 
-getSplitRowGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> HTTP.Manager -> m a
-getSplitRowGeneric path splitName key value params manager = do
-    response <- get path params manager
+getSplitRowGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> m a
+getSplitRowGeneric path splitName key value params = do
+    response <- get path params
     split <- findSplit response splitName
     keyIndex <- maybe
         (Except.throwError $ NoKeyInColumns $ Text.unpack key)
@@ -155,11 +155,11 @@ getRequest path = do
         HTTP.path = "/stats/" <> path
     }
 
-get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => Path -> Parameters -> HTTP.Manager -> m (HTTP.Response LBS.ByteString)
-get path params manager = do
+get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => Path -> Parameters -> m (HTTP.Response LBS.ByteString)
+get path params = do
     initRequest <- getRequest path
     let request = HTTP.setQueryString params initRequest
-    MonadHTTP.performRequest request manager
+    MonadHTTP.performRequest request
 
 data StatsError =
     PayloadDecodeError String |

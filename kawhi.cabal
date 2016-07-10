@@ -23,6 +23,7 @@ library
     data-default,
     exceptions,
     http-conduit,
+    http-client,
     http-types,
     mtl,
     safe,
@@ -43,7 +44,6 @@ test-suite tests
     aeson,
     bytestring,
     exceptions,
-    http-conduit,
     http-client,
     http-types,
     mtl,
@@ -67,7 +67,6 @@ executable example
         base,
         aeson,
         bytestring,
-        http-conduit,
         kawhi,
         text,
         unordered-containers
