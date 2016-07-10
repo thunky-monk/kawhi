@@ -28,7 +28,7 @@ tests :: Tasty.TestTree
 tests = Tasty.testGroup "NBA.Stats" [
     SC.testProperty "getRequest == HTTP.parseUrl" $
         \path -> SC.monadic $ do
-            request <- Stats.getRequest $ Char8.pack path
+            let request = Stats.getRequest $ Char8.pack path
             model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
             return $ show request == show model,
     propertyStatsErrorShow Stats.PayloadDecodeError "PayloadDecodeFailure",

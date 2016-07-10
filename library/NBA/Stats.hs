@@ -30,13 +30,13 @@ import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:), (.=))
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as SBS
-import qualified Data.Default as Default
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import Data.Monoid ((<>))
 import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Text as Text
-import qualified Network.HTTP.Conduit as HTTP
+import qualified Network.HTTP.Client as HTTP
+import qualified Network.HTTP.Simple as HTTP
 import qualified Safe
 
 domain :: SBS.ByteString
@@ -145,21 +145,16 @@ findSplit response splitName = do
         return
         (List.find (\r -> name r == splitName) $ splits stats)
 
-getRequest :: Trans.MonadIO m => Path -> m HTTP.Request
-getRequest path = do
-    initRequest <- Trans.liftIO (Default.def :: IO HTTP.Request)
-    return initRequest {
-        HTTP.method = "GET",
-        HTTP.secure = False,
-        HTTP.host = domain,
-        HTTP.path = "/stats/" <> path
-    }
+getRequest :: Path -> HTTP.Request
+getRequest path = HTTP.defaultRequest {
+    HTTP.method = "GET",
+    HTTP.secure = False,
+    HTTP.host = domain,
+    HTTP.path = "/stats/" <> path
+}
 
 get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => Path -> Parameters -> m (HTTP.Response LBS.ByteString)
-get path params = do
-    initRequest <- getRequest path
-    let request = HTTP.setQueryString params initRequest
-    MonadHTTP.performRequest request
+get path params = MonadHTTP.performRequest $ HTTP.setQueryString params $ getRequest path
 
 data StatsError =
     PayloadDecodeError String |
