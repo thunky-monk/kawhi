@@ -31,12 +31,12 @@ tests = Tasty.testGroup "NBA.Stats" [
             let request = Stats.getRequest $ Char8.pack path
             model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
             return $ show request == show model,
-    propertyStatsErrorShow Stats.PayloadDecodeError "PayloadDecodeFailure",
-    propertyStatsErrorShow Stats.NoMatchingSplit "NoMatchingSplit",
-    propertyStatsErrorShow Stats.NoMatchingRow "NoMatchingRow",
-    propertyStatsErrorShow Stats.NoKeyInColumns "NoKeyInColumns",
-    propertyStatsErrorShow Stats.NoValueForRowIndex "NoValueForRowIndex",
-    propertyStatsErrorShow Stats.TableConversionError "TableConversionFailure",
+    propertyStatsErrorShow Stats.StatsResponseDecodeFailure "StatsResponseDecodeFailure",
+    propertyStatsErrorShow Stats.SplitNameNotFound "SplitNameNotFound",
+    propertyStatsErrorShow Stats.SplitKeyNotFound "SplitKeyNotFound",
+    propertyStatsErrorShow Stats.SplitColumnNameNotFound "SplitColumnNameNotFound",
+    propertyStatsErrorShow Stats.SplitRowValueNotFound "SplitRowValueNotFound",
+    propertyStatsErrorShow Stats.SplitRowParseFailure "TableConversionFailure",
 
     getSplitRowExpectSuccess
         "Success"
@@ -49,54 +49,54 @@ tests = Tasty.testGroup "NBA.Stats" [
         [defaultModel, defaultModel],
 
     getSplitRowExpectFailure
-        "NoValueForRowIndex"
+        "SplitRowValueNotFound"
         (defaultResponseBody [defaultSplit { Stats.rows = [take 2 defaultRow] }])
-        (Stats.NoValueForRowIndex "2"),
+        (Stats.SplitRowValueNotFound "2"),
 
     getSplitRowExpectFailure
-        "NoValueForRowIndex"
+        "SplitRowValueNotFound"
         (defaultResponseBody [defaultSplit { Stats.rows = [take 2 defaultRow] }])
-        (Stats.NoValueForRowIndex "2"),
+        (Stats.SplitRowValueNotFound "2"),
 
     getSplitRowExpectFailure
-        "NoMatchingRow (no rows)"
+        "SplitKeyNotFound (no rows)"
         (defaultResponseBody [defaultSplit { Stats.rows = [] }])
-        (Stats.NoMatchingRow $ show defaultRowIdentifier),
+        (Stats.SplitKeyNotFound $ show defaultRowIdentifier),
 
     getSplitRowExpectFailure
-        "NoMatchingRow (no key value)"
+        "SplitKeyNotFound (no key value)"
         (defaultResponseBody [defaultSplit { Stats.rows = [[]] }])
-        (Stats.NoMatchingRow $ show defaultRowIdentifier),
+        (Stats.SplitKeyNotFound $ show defaultRowIdentifier),
 
     getSplitRowExpectFailure
-        "NoMatchingRow (JSON parse error for key value)"
+        "SplitKeyNotFound (JSON parse error for key value)"
         (let rowWithBadValue = Aeson.Number 99 : defaultRow in defaultResponseBody [defaultSplit { Stats.rows = [rowWithBadValue] }])
-        (Stats.NoMatchingRow $ show defaultRowIdentifier),
+        (Stats.SplitKeyNotFound $ show defaultRowIdentifier),
 
     getSplitRowExpectFailure
-        "NoMatchingSplit"
+        "SplitNameNotFound"
         (defaultResponseBody [])
-        (Stats.NoMatchingSplit $ Text.unpack defaultSplitName),
+        (Stats.SplitNameNotFound $ Text.unpack defaultSplitName),
 
     getSplitRowExpectFailure
-        "NoKeyInColumns"
+        "SplitColumnNameNotFound"
         (defaultResponseBody [defaultSplit { Stats.columns = [] }])
-        (Stats.NoKeyInColumns $ Text.unpack defaultColumnsKey),
+        (Stats.SplitColumnNameNotFound $ Text.unpack defaultColumnsKey),
 
     getSplitRowExpectFailure
-        "TableConversionError (type mismatch)"
+        "SplitRowParseFailure (type mismatch)"
         (defaultResponseBody [defaultSplit { Stats.rows = [[Aeson.String defaultRowIdentifier, Aeson.String $ Text.pack $ show (a defaultModel), Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]] }])
-        (Stats.TableConversionError "failed to parse field A: expected Integral, encountered String"),
+        (Stats.SplitRowParseFailure "failed to parse field A: expected Integral, encountered String"),
 
     getSplitRowExpectFailure
-        "TableConversionError (missing field)"
+        "SplitRowParseFailure (missing field)"
         (defaultResponseBody [defaultSplit { Stats.columns = take (length defaultColumns - 1) defaultColumns }])
-        (Stats.TableConversionError "key \"C\" not present"),
+        (Stats.SplitRowParseFailure "key \"C\" not present"),
 
     getSplitRowExpectFailure
-        "PayloadDecodeError (for Stats)"
+        "StatsResponseDecodeFailure (for Stats)"
         (Aeson.encode [defaultSplit])
-        (Stats.PayloadDecodeError "Error in $: expected Stats, encountered Array"),
+        (Stats.StatsResponseDecodeFailure "Error in $: expected Stats, encountered Array"),
 
     HUnit.testCase
         "parseJSON invalid :: Parser Split -> Error"
@@ -148,7 +148,7 @@ runAction action responseBody responseStatus = MonadHTTP.runMockHTTP
         HTTP.responseClose' = HTTP.ResponseClose (return () :: IO ())
     }
 
-defaultParams :: Stats.Parameters
+defaultParams :: Stats.StatsParameters
 defaultParams = [("param", Just "value")]
 
 defaultResponseBody :: [Stats.Split] -> ByteString.ByteString
@@ -169,16 +169,16 @@ defaultSplit = Stats.Split {
 defaultSplitName :: Stats.SplitName
 defaultSplitName = "name"
 
-defaultColumnsKey :: Stats.Column
+defaultColumnsKey :: Stats.SplitColumn
 defaultColumnsKey = "key"
 
 defaultRowIdentifier :: Text.Text
 defaultRowIdentifier = "identifier"
 
-defaultColumns :: [Stats.Column]
+defaultColumns :: [Stats.SplitColumn]
 defaultColumns = [defaultColumnsKey, "A", "B", "C"]
 
-defaultRow :: Stats.Row
+defaultRow :: Stats.SplitRow
 defaultRow = [Aeson.String defaultRowIdentifier, Aeson.Number $ Sci.scientific (a defaultModel) 0, Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]
 
 defaultModel :: MockModel

@@ -4,21 +4,37 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
+{-|
+    Module: NBA.Stats
+    Copyright: Aaron Taylor, 2016
+    License: MIT
+    Maintainer: aaron@hamsterdam.co
+
+    Here is a longer description of this module, containing some
+    commentary with @some markup@.
+-}
 module NBA.Stats (
-    Column,
-    domain,
-    getRequest,
-    getSplitRow,
+    -- * Simple API
     getSplitRows,
-    getSplitRowGeneric,
+    getSplitRow,
+
+    -- * Generic API
     getSplitRowsGeneric,
-    Parameters,
-    Path,
+    getSplitRowGeneric,
+
+    -- * Types
     Stats(..),
     Split(..),
     SplitName,
-    Row,
-    StatsError(..)
+    SplitColumn,
+    SplitRow,
+    StatsPath,
+    StatsParameters,
+    StatsError(..),
+
+    -- * Utility
+    domain,
+    getRequest,
 ) where
 
 import qualified Control.Monad as Monad
@@ -39,31 +55,72 @@ import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Simple as HTTP
 import qualified Safe
 
-domain :: SBS.ByteString
-domain = "stats.nba.com"
+{- |
+    Gets all the rows in a NBA Stats split.
 
-getSplitRows :: (Aeson.FromJSON a) => Path -> SplitName -> Parameters -> IO (Either StatsError [a])
+    When using this function in a custom monad transformer, it may be desirable to use the generic version of this function, 'getSplitRowsGeneric', instead.
+-}
+getSplitRows ::
+    (Aeson.FromJSON a)
+    => StatsPath -- ^ The URL path for the stats web page containing the split.
+    -> SplitName -- ^ The split name.
+    -> StatsParameters -- ^ The parameters for customizing the stats.
+    -> IO (Either StatsError [a]) -- ^ The return value: an IO action resulting in an error or split rows.
 getSplitRows path splitName params = Except.runExceptT $ getSplitRowsGeneric path splitName params
 
-getSplitRowsGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Aeson.FromJSON a) => Path -> SplitName -> Parameters -> m [a]
+{- |
+    Gets a row in a NBA Stats split.
+
+    When using this function in a custom monad transformer, it may be desirable to use the generic version of this function, 'getSplitRowGeneric', instead.
+-}
+getSplitRow ::
+    (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
+    => StatsPath -- ^ The URL path for the stats web page containing the split.
+    -> SplitName -- ^ The split name.
+    -> SplitColumn -- ^ The column name key for a the desired row.
+    -> v -- ^ The expected row value associated with the column name key for a the desired row.
+    -> StatsParameters -- ^ The parameters for customizing the stats.
+    -> IO (Either StatsError a) -- ^ The return value: an IO action resulting in an error or a split row.
+getSplitRow path splitName key value params = Except.runExceptT $ getSplitRowGeneric path splitName key value params
+
+{- |
+    Gets all the rows in a NBA Stats split.
+
+    The simpler version of this function, 'getSplitRows', has a concrete 'm'.
+-}
+getSplitRowsGeneric ::
+    (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Aeson.FromJSON a)
+    => StatsPath -- ^ The URL path for the stats web page containing the split.
+    -> SplitName -- ^ The split name.
+    -> StatsParameters -- ^ The parameters for customizing the stats.
+    -> m [a] -- ^ The return value: an action resulting in an error or split rows.
 getSplitRowsGeneric path splitName params = do
     response <- get path params
     split <- findSplit response splitName
     Monad.forM (rows split) $ convertTable (columns split)
 
-getSplitRow :: (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> IO (Either StatsError a)
-getSplitRow path splitName key value params = Except.runExceptT $ getSplitRowGeneric path splitName key value params
+{- |
+    Gets a row in an NBA Stats split.
 
-getSplitRowGeneric :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a) => Path -> SplitName -> Column -> v -> Parameters -> m a
+    The simpler version of this function, 'getSplitRows', has a concrete 'm'.
+-}
+getSplitRowGeneric ::
+    (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
+    => StatsPath -- ^ The URL path for the stats web page containing the split.
+    -> SplitName -- ^ The split name.
+    -> SplitColumn -- ^ The column name key for a the desired row.
+    -> v -- ^ The expected row value associated with the column name key for a the desired row.
+    -> StatsParameters -- ^ The parameters for customizing the stats.
+    -> m a -- ^ The return value: an action resulting in an error or a split row.
 getSplitRowGeneric path splitName key value params = do
     response <- get path params
     split <- findSplit response splitName
     keyIndex <- maybe
-        (Except.throwError $ NoKeyInColumns $ Text.unpack key)
+        (Except.throwError $ SplitColumnNameNotFound $ Text.unpack key)
         return
         (List.elemIndex key (columns split))
     row <- maybe
-        (Except.throwError $ NoMatchingRow $ show value)
+        (Except.throwError $ SplitKeyNotFound $ show value)
         return
         (List.find
             (\row ->
@@ -75,21 +132,22 @@ getSplitRowGeneric path splitName key value params = do
             (rows split))
     convertTable (columns split) row
 
-type Column = Text.Text
+{- |
+    An NBA Stats split.
 
-type Row = [Aeson.Value]
-
-type Parameters = [(SBS.ByteString, Maybe SBS.ByteString)]
-
-type Path = SBS.ByteString
-
-type SplitName = Text.Text
-
-data Split = Split {
-    name :: SplitName,
-    columns :: [Column],
-    rows :: [Row]
-} deriving (Show, Eq)
+    This type represents splits available from NBA Stats.
+-}
+data Split =
+    -- | Constructor for a split.
+    Split {
+        -- | The split's name.
+        name :: SplitName,
+        -- | The split's column names.
+        columns :: [SplitColumn],
+        -- | The split's rows of data.
+        rows :: [SplitRow]
+    }
+    deriving (Show, Eq)
 
 instance Aeson.FromJSON Split where
     parseJSON (Aeson.Object v) = do
@@ -105,9 +163,27 @@ instance Aeson.ToJSON Split where
         "headers" .= columns,
         "rowSet" .= rows]
 
-data Stats = Stats {
-    splits :: [Split]
-} deriving (Show, Eq)
+-- | An NBA Stats split name.
+type SplitName = Text.Text
+
+-- | A column name in an NBA Stats split.
+type SplitColumn = Text.Text
+
+-- | A row of data in an NBA Stats split.
+type SplitRow = [Aeson.Value]
+
+{- |
+    An NBA Stats resource.
+
+    This type represents the top-level JSON object returned from the NBA Stats REST API.
+-}
+data Stats =
+    -- | Constructor for stats resource.
+    Stats {
+        -- | The resource's splits.
+        splits :: [Split]
+    }
+    deriving (Show, Eq)
 
 instance Aeson.ToJSON Stats where
     toJSON Stats {..} = Aeson.object [
@@ -119,33 +195,47 @@ instance Aeson.FromJSON Stats where
         return Stats {..}
     parseJSON invalid = Aeson.typeMismatch "Stats" invalid
 
-convertTable :: (Except.MonadError StatsError m, Aeson.FromJSON a) => [Column] -> Row -> m a
-convertTable columns row = do
-    object <- fmap (Aeson.Object . fst) $ Foldable.foldlM
-        (\(hash, index) column -> do
-            value <- maybe
-                (Except.throwError $ NoValueForRowIndex $ show index)
-                return
-                (Safe.atMay row index)
-            return (HashMap.insert column value hash, index `seq` index + 1))
-        (HashMap.empty, 0)
-        columns
-    case Aeson.parse Aeson.parseJSON object of
-        Aeson.Error message -> Except.throwError $ TableConversionError message
-        Aeson.Success split -> return split
+-- | A URL path for an NBA Stats resource.
+type StatsPath = SBS.ByteString
 
-findSplit :: (Except.MonadError StatsError m) => HTTP.Response LBS.ByteString -> SplitName -> m Split
-findSplit response splitName = do
-    stats <- either
-        (Except.throwError . PayloadDecodeError)
-        return
-        (Aeson.eitherDecode . HTTP.responseBody $ response)
-    maybe
-        (Except.throwError $ NoMatchingSplit $ Text.unpack splitName)
-        return
-        (List.find (\r -> name r == splitName) $ splits stats)
+-- | A collection of parameters that customize NBA Stats resources.
+type StatsParameters = [(SBS.ByteString, Maybe SBS.ByteString)]
 
-getRequest :: Path -> HTTP.Request
+{- |
+    An error which may be generated by this library.
+-}
+data StatsError =
+    -- | An HTTP response has invalid JSON.
+    StatsResponseDecodeFailure String |
+    -- | A stats resource does not have a split matching the given split name.
+    SplitNameNotFound String |
+    -- | A split does not have a row matching the given column key and row value.
+    SplitKeyNotFound String |
+    -- | A split row has less values than columns.
+    SplitRowValueNotFound String |
+    -- | A split does not have a column name matching the given key.
+    SplitColumnNameNotFound String |
+    -- | A failure to parse a split row's tabular data to the destination type.
+    SplitRowParseFailure String
+    deriving (Eq)
+
+instance Show StatsError where
+    show statsError = "StatsError (" ++ showCase statsError ++ ")"
+        where
+            showCase err = case err of
+                StatsResponseDecodeFailure message -> format "StatsResponseDecodeFailure" message
+                SplitNameNotFound message -> format "SplitNameNotFound" message
+                SplitKeyNotFound message -> format "SplitKeyNotFound" message
+                SplitRowValueNotFound message -> format "SplitRowValueNotFound" message
+                SplitColumnNameNotFound message -> format "SplitColumnNameNotFound" message
+                SplitRowParseFailure message -> format "TableConversionFailure" message
+            format :: String -> String -> String
+            format name message = name ++ " " ++ message
+
+{- |
+    Generates an HTTP GET request like the ones used internally.
+-}
+getRequest :: StatsPath -> HTTP.Request
 getRequest path = HTTP.defaultRequest {
     HTTP.method = "GET",
     HTTP.secure = False,
@@ -153,27 +243,39 @@ getRequest path = HTTP.defaultRequest {
     HTTP.path = "/stats/" <> path
 }
 
-get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => Path -> Parameters -> m (HTTP.Response LBS.ByteString)
+{- |
+    The NBA Stats domain name.
+-}
+domain :: SBS.ByteString
+domain = "stats.nba.com"
+
+convertTable :: (Except.MonadError StatsError m, Aeson.FromJSON a) => [SplitColumn] -> SplitRow -> m a
+convertTable columns row = do
+    object <- fmap (Aeson.Object . fst) $ Foldable.foldlM
+        (\(hash, index) column -> do
+            value <- maybe
+                (Except.throwError $ SplitRowValueNotFound $ show index)
+                return
+                (Safe.atMay row index)
+            return (HashMap.insert column value hash, index `seq` index + 1))
+        (HashMap.empty, 0)
+        columns
+    case Aeson.parse Aeson.parseJSON object of
+        Aeson.Error message -> Except.throwError $ SplitRowParseFailure message
+        Aeson.Success split -> return split
+
+findSplit :: (Except.MonadError StatsError m) => HTTP.Response LBS.ByteString -> SplitName -> m Split
+findSplit response splitName = do
+    stats <- either
+        (Except.throwError . StatsResponseDecodeFailure)
+        return
+        (Aeson.eitherDecode . HTTP.responseBody $ response)
+    maybe
+        (Except.throwError $ SplitNameNotFound $ Text.unpack splitName)
+        return
+        (List.find (\r -> name r == splitName) $ splits stats)
+
+
+
+get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
 get path params = MonadHTTP.performRequest $ HTTP.setQueryString params $ getRequest path
-
-data StatsError =
-    PayloadDecodeError String |
-    NoMatchingSplit String |
-    NoMatchingRow String |
-    NoValueForRowIndex String |
-    NoKeyInColumns String |
-    TableConversionError String
-    deriving (Eq)
-
-instance Show StatsError where
-    show statsError = "StatsError (" ++ showCase statsError ++ ")"
-        where
-            showCase err = case err of
-                PayloadDecodeError message -> format "PayloadDecodeFailure" message
-                NoMatchingSplit message -> format "NoMatchingSplit" message
-                NoMatchingRow message -> format "NoMatchingRow" message
-                NoValueForRowIndex message -> format "NoValueForRowIndex" message
-                NoKeyInColumns message -> format "NoKeyInColumns" message
-                TableConversionError message -> format "TableConversionFailure" message
-            format :: String -> String -> String
-            format name message = name ++ " " ++ message
