@@ -10,10 +10,12 @@
     License: MIT
     Maintainer: aaron@hamsterdam.co
 
-    Here is a longer description of this module, containing some
-    commentary with @some markup@.
+    Functions and types for interacting with <http://stats.NBA.com NBA Stats>.
 -}
 module NBA.Stats (
+    -- * How to use this library
+    -- $use
+
     -- * Simple API
     getSplitRows,
     getSplitRow,
@@ -279,3 +281,37 @@ findSplit response splitName = do
 
 get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
 get path params = MonadHTTP.performRequest $ HTTP.setQueryString params $ getRequest path
+
+{- $use
+    @
+    import Data.Aeson
+    import Data.Aeson.Types
+    import NBA.Stats
+
+    data Team = Team {
+        identifier :: Integer,
+        name :: String
+    } deriving (Show, Eq)
+
+    instance FromJSON Team where
+        parseJSON (Object o) = do
+            identifier <- o .: \"TEAM_ID\"
+            name <- o .: \"TEAM_NAME\"
+            return Team {..}
+        parseJSON invalid = typeMismatch \"Team\" invalid
+
+    getTeams :: IO (Either StatsError [Team])
+    getTeams = getSplitRows
+        \"leaguedashteamstats\"
+        \"LeagueDashTeamStats\"
+        [(\"Conference\", Nothing), (\"PerMode\", Just \"PerGame\")]
+
+    main :: IO ()
+    main = do
+        eitherErrorOrTeams <- getTeams
+        case eitherErrorOrTeams of
+            Left err -> print err
+            Right teams -> print teams
+    @
+
+-}
