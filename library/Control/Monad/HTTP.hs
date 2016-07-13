@@ -3,9 +3,21 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{-|
+    Copyright: Aaron Taylor, 2016
+    License: MIT
+    Maintainer: aaron@hamsterdam.co
+
+    Class and instances for types capable of HTTP requests.
+
+    In some cases, it is useful to generalize this capability. For example, it can be used provide mock responses for testing.
+-}
 module Control.Monad.HTTP (
-    MockHTTP,
+    -- * Class
     MonadHTTP(..),
+
+    -- * To be removed
+    MockHTTP,
     runMockHTTP
 ) where
 
@@ -18,6 +30,9 @@ import qualified Network.HTTP.Simple as HTTPSimple
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTP
 
+{-|
+    The class of monads capable of HTTP requests.
+-}
 class Monad m => MonadHTTP m where
     performRequest :: HTTP.Request -> m (HTTP.Response LBS.ByteString)
 
