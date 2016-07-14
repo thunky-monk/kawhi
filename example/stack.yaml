@@ -1,0 +1,8 @@
+resolver: lts-6.2
+
+packages:
+  - '.'
+  - location:
+      git: https://github.com/hamsterdam/kawhi.git
+      commit: 4c7bc46601c3be9037c8a6e30e0e4bd185d09cb3
+    extra-dep: true

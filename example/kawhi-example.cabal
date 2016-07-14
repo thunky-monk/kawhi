@@ -1,0 +1,25 @@
+name: kawhi-example
+version: 0.0.1
+synopsis: kawhi example
+description: Please see README.md
+homepage: https://github.com/hamsterdam/kawhi
+license: MIT
+license-file: LICENSE
+author: Aaron Taylor
+maintainer: aaron@hamsterdam.co
+build-type: Simple
+cabal-version: >=1.10
+
+executable kawhi-example
+    main-is: Main.hs
+    other-modules:
+        Team
+    ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+    build-depends:
+        base,
+        aeson,
+        bytestring,
+        kawhi,
+        text,
+        unordered-containers
+    default-language: Haskell2010
