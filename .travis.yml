@@ -50,6 +50,6 @@ before_install:
 
 install:
   - stack $GLOBAL_ARGS $ARGS setup
-  - stack $GLOBAL_ARGS $ARGS build --only-dependencies
+  - stack $GLOBAL_ARGS $ARGS build --test --haddock --only-dependencies
 
-script: stack $GLOBAL_ARGS $ARGS build --test --haddock
+script: stack $GLOBAL_ARGS $ARGS build --test --haddock --no-haddock-deps
