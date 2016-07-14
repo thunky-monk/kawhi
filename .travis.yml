@@ -52,4 +52,4 @@ install:
   - stack $GLOBAL_ARGS $ARGS setup
   - stack $GLOBAL_ARGS $ARGS build --only-dependencies
 
-script: stack $GLOBAL_ARGS $ARGS test
+script: stack $GLOBAL_ARGS $ARGS build --test --haddock
