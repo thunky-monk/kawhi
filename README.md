@@ -11,5 +11,5 @@ It's named after [Kawhi Leonard](http://cdn2.vox-cdn.com/assets/5039756/Kawhi-Le
 To get started:
 
 1. [Get Haskell](https://haskell-lang.org/get-started). If you've never done any computer programming, this could be challenging. [Never give up!](https://www.instagram.com/p/BENA9hpN_wL/)
-2. Read the guide
-3. Check out the example
+2. Read the [guide](guide.md)
+3. Check out the [example](example)
