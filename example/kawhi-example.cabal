@@ -12,14 +12,9 @@ cabal-version: >=1.10
 
 executable kawhi-example
     main-is: Main.hs
-    other-modules:
-        Team
-    ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+    ghc-options: -O1 -threaded -rtsopts -with-rtsopts=-N
     build-depends:
         base,
         aeson,
-        bytestring,
-        kawhi,
-        text,
-        unordered-containers
+        kawhi
     default-language: Haskell2010
