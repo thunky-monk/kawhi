@@ -42,7 +42,7 @@ module NBA.Stats (
 import qualified Control.Monad as Monad
 import qualified Control.Monad.Except as Except
 import qualified Control.Monad.Trans as Trans
-import qualified Control.Monad.HTTP as MonadHTTP
+import qualified Control.Monad.Http as MonadHttp
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:), (.=))
@@ -91,7 +91,7 @@ getSplitRow path splitName key value params = Except.runExceptT $ getSplitRowGen
     The simpler version of this function, 'getSplitRows', has a concrete 'm'.
 -}
 getSplitRowsGeneric ::
-    (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Aeson.FromJSON a)
+    (Trans.MonadIO m, MonadHttp.MonadHttp m, Except.MonadError StatsError m, Aeson.FromJSON a)
     => StatsPath -- ^ The URL path for the stats web page containing the split.
     -> SplitName -- ^ The split name.
     -> StatsParameters -- ^ The parameters for customizing the stats.
@@ -107,7 +107,7 @@ getSplitRowsGeneric path splitName params = do
     The simpler version of this function, 'getSplitRows', has a concrete 'm'.
 -}
 getSplitRowGeneric ::
-    (Trans.MonadIO m, MonadHTTP.MonadHTTP m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
+    (Trans.MonadIO m, MonadHttp.MonadHttp m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
     => StatsPath -- ^ The URL path for the stats web page containing the split.
     -> SplitName -- ^ The split name.
     -> SplitColumn -- ^ The column name key for a the desired row.
@@ -279,8 +279,8 @@ findSplit response splitName = do
 
 
 
-get :: (Trans.MonadIO m, MonadHTTP.MonadHTTP m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
-get path params = MonadHTTP.performRequest $ HTTP.setQueryString params $ getRequest path
+get :: (Trans.MonadIO m, MonadHttp.MonadHttp m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
+get path params = MonadHttp.performRequest $ HTTP.setQueryString params $ getRequest path
 
 {- $use
     @

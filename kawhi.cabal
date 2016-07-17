@@ -13,7 +13,7 @@ cabal-version: >=1.10
 library
   hs-source-dirs: library
   exposed-modules:
-    Control.Monad.HTTP
+    Control.Monad.Http
     NBA.Stats
   other-modules:
   build-depends:

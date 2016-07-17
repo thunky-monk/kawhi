@@ -12,13 +12,13 @@
 
     In some cases, it is useful to generalize this capability. For example, it can be used provide mock responses for testing.
 -}
-module Control.Monad.HTTP (
+module Control.Monad.Http (
     -- * Class
-    MonadHTTP(..),
+    MonadHttp(..),
 
     -- * Transformer
-    HTTPT(..),
-    runHTTPT
+    HttpT(..),
+    runHttpT
 ) where
 
 import qualified Control.Monad.Catch as Catch
@@ -33,13 +33,13 @@ import qualified Network.HTTP.Types as HTTP
 {-|
     The class of monads capable of HTTP requests.
 -}
-class Monad m => MonadHTTP m where
+class Monad m => MonadHttp m where
     performRequest :: HTTP.Request -> m (HTTP.Response LBS.ByteString)
 
-instance MonadHTTP IO where
+instance MonadHttp IO where
     performRequest = HTTPSimple.httpLbs
 
-instance Catch.MonadThrow m => MonadHTTP (HTTPT m) where
+instance Catch.MonadThrow m => MonadHttp (HttpT m) where
     performRequest _ = check
         where
             check = do
@@ -49,26 +49,26 @@ instance Catch.MonadThrow m => MonadHTTP (HTTPT m) where
                     then return response
                     else Catch.throwM $ HTTP.StatusCodeException status [] (HTTP.createCookieJar [])
 
-instance Trans.MonadIO m => MonadHTTP (Except.ExceptT e m) where
+instance Trans.MonadIO m => MonadHttp (Except.ExceptT e m) where
     performRequest = HTTPSimple.httpLbs
 
 {-|
     An HTTP transformer monad parameterized by an inner monad 'm'.
 -}
-newtype HTTPT m a = HTTPT { unHTTPT :: Reader.ReaderT (HTTP.Response LBS.ByteString) m a }
+newtype HttpT m a = HttpT { unHttpT :: Reader.ReaderT (HTTP.Response LBS.ByteString) m a }
     deriving (Functor, Applicative, Monad, Trans.MonadTrans, Catch.MonadThrow, Catch.MonadCatch, Trans.MonadIO, Reader.MonadReader (HTTP.Response LBS.ByteString))
 
 {-|
     Run an HTTP monad action and extract the inner monad.
 -}
-runHTTPT ::
-    HTTPT m a -- ^ The HTTP monad transformer
+runHttpT ::
+    HttpT m a -- ^ The HTTP monad transformer
     -> HTTP.Response LBS.ByteString -- ^ The response
     -> m a -- ^ The resulting inner monad
-runHTTPT = Reader.runReaderT . unHTTPT
+runHttpT = Reader.runReaderT . unHttpT
 
-instance Except.MonadError e m => Except.MonadError e (HTTPT m) where
+instance Except.MonadError e m => Except.MonadError e (HttpT m) where
     throwError = Trans.lift . Except.throwError
-    catchError m f = HTTPT . Reader.ReaderT $ \r -> Except.catchError
-        (runHTTPT m r)
-        (\e -> runHTTPT (f e) r)
+    catchError m f = HttpT . Reader.ReaderT $ \r -> Except.catchError
+        (runHttpT m r)
+        (\e -> runHttpT (f e) r)

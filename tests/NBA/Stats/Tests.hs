@@ -7,7 +7,7 @@
 module NBA.Stats.Tests where
 
 import qualified Control.Monad.Except as Except
-import qualified Control.Monad.HTTP as MonadHTTP
+import qualified Control.Monad.Http as MonadHttp
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
@@ -119,7 +119,7 @@ getSplitRowExpectFailure testName responseBody expected = HUnit.testCase ("Get s
         Left err -> err @?= expected
         Right model -> HUnit.assertFailure $ show model
 
-expectSuccess :: (Eq a, Show a) => MonadHTTP.HTTPT StatsTest a -> Tasty.TestName -> ByteString.ByteString -> a -> Tasty.TestTree
+expectSuccess :: (Eq a, Show a) => MonadHttp.HttpT StatsTest a -> Tasty.TestName -> ByteString.ByteString -> a -> Tasty.TestTree
 expectSuccess action testName responseBody expected =
     HUnit.testCase testName $ do
         eitherModel <- runStatsTest $ runAction action responseBody HTTP.ok200
@@ -133,11 +133,11 @@ getSplitRowsExpectSuccess name = expectSuccess (Stats.getSplitRowsGeneric "mockm
 getSplitRowExpectSuccess :: Tasty.TestName -> ByteString.ByteString -> MockModel -> Tasty.TestTree
 getSplitRowExpectSuccess name = expectSuccess statAction $ "Get stat -> " <> name
 
-statAction :: MonadHTTP.HTTPT StatsTest MockModel
+statAction :: MonadHttp.HttpT StatsTest MockModel
 statAction = Stats.getSplitRowGeneric "mockmodels" defaultSplitName defaultColumnsKey defaultRowIdentifier defaultParams
 
-runAction :: MonadHTTP.HTTPT StatsTest a -> ByteString.ByteString -> HTTP.Status -> StatsTest a
-runAction action responseBody responseStatus = MonadHTTP.runHTTPT
+runAction :: MonadHttp.HttpT StatsTest a -> ByteString.ByteString -> HTTP.Status -> StatsTest a
+runAction action responseBody responseStatus = MonadHttp.runHttpT
     action
     HTTP.Response {
         HTTP.responseStatus = responseStatus,
