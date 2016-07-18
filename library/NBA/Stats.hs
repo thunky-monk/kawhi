@@ -124,12 +124,10 @@ getSplitRowGeneric path splitName key value params = do
         (Except.throwError $ SplitKeyNotFound $ show value)
         return
         (List.find
-            (\row ->
-                case Safe.atMay row keyIndex of
-                    Nothing -> False
-                    Just v -> case Aeson.parseMaybe Aeson.parseJSON v of
-                        Nothing -> False
-                        Just a -> a == value)
+            (\row -> maybe
+                False
+                (==value)
+                (Safe.atMay row keyIndex >>= Aeson.parseMaybe Aeson.parseJSON))
             (rows split))
     convertTable (columns split) row
 
