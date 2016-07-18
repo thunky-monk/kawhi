@@ -39,7 +39,6 @@ module NBA.Stats (
     getRequest,
 ) where
 
-import qualified Control.Monad as Monad
 import qualified Control.Monad.Except as Except
 import qualified Control.Monad.Trans as Trans
 import qualified Control.Monad.Http as MonadHttp
@@ -99,7 +98,7 @@ getSplitRowsGeneric ::
 getSplitRowsGeneric path splitName params = do
     response <- get path params
     split <- findSplit response splitName
-    Monad.forM (rows split) $ convertTable (columns split)
+    traverse (convertTable $ columns split) $ rows split
 
 {- |
     Gets a row in an NBA Stats split.
