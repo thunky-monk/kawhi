@@ -13,7 +13,7 @@ main = do
     eitherErrorOrStats <- advancedStatsByMonth
     case eitherErrorOrStats of
         Left statsError -> print statsError
-        Right stats -> print stats
+        Right stats -> mapM_ print stats
 
 data AdvancedStats = AdvancedStats {
     month :: String,

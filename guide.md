@@ -65,5 +65,11 @@ DEF_RATING
 Look at the [example project](example). It uses the data from this guide. The output looks like:
 
 ```
-[AdvancedStats {month = "October", offensiveRating = 102.7, defensiveRating = 93.4},AdvancedStats {month = "November", offensiveRating = 102.5, defensiveRating = 93.4},AdvancedStats {month = "December", offensiveRating = 111.8, defensiveRating = 91.5},AdvancedStats {month = "January", offensiveRating = 114.0, defensiveRating = 100.7},AdvancedStats {month = "February", offensiveRating = 110.7, defensiveRating = 99.1},AdvancedStats {month = "March", offensiveRating = 107.8, defensiveRating = 97.2},AdvancedStats {month = "April", offensiveRating = 102.3, defensiveRating = 103.5}]
+AdvancedStats {month = "October", offensiveRating = 102.7, defensiveRating = 93.4}
+AdvancedStats {month = "November", offensiveRating = 102.5, defensiveRating = 93.4}
+AdvancedStats {month = "December", offensiveRating = 111.8, defensiveRating = 91.5}
+AdvancedStats {month = "January", offensiveRating = 114.0, defensiveRating = 100.7}
+AdvancedStats {month = "February", offensiveRating = 110.7, defensiveRating = 99.1}
+AdvancedStats {month = "March", offensiveRating = 107.8, defensiveRating = 97.2}
+AdvancedStats {month = "April", offensiveRating = 102.3, defensiveRating = 103.5}
 ```
