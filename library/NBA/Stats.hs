@@ -230,7 +230,7 @@ instance Show StatsError where
                 SplitKeyNotFound message -> format "SplitKeyNotFound" message
                 SplitRowValueNotFound message -> format "SplitRowValueNotFound" message
                 SplitColumnNameNotFound message -> format "SplitColumnNameNotFound" message
-                SplitRowParseFailure message -> format "TableConversionFailure" message
+                SplitRowParseFailure message -> format "SplitRowParseFailure" message
             format :: String -> String -> String
             format name message = name ++ " " ++ message
 

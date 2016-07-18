@@ -33,7 +33,7 @@ tests = Tasty.testGroup "NBA.Stats" [
     propertyStatsErrorShow Stats.SplitKeyNotFound "SplitKeyNotFound",
     propertyStatsErrorShow Stats.SplitColumnNameNotFound "SplitColumnNameNotFound",
     propertyStatsErrorShow Stats.SplitRowValueNotFound "SplitRowValueNotFound",
-    propertyStatsErrorShow Stats.SplitRowParseFailure "TableConversionFailure",
+    propertyStatsErrorShow Stats.SplitRowParseFailure "SplitRowParseFailure",
 
     getSplitRowExpectSuccess
         "Success"
