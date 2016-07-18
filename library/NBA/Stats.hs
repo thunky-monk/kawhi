@@ -253,14 +253,14 @@ domain = "stats.nba.com"
 
 convertTable :: (Except.MonadError StatsError m, Aeson.FromJSON a) => [SplitColumn] -> SplitRow -> m a
 convertTable columns row = do
-    object <- fmap (Aeson.Object . fst) $ Foldable.foldlM
-        (\(hash, index) column -> do
+    object <- fmap (Aeson.Object . fst) $ Foldable.foldrM
+        (\column (hash, index) -> do
             value <- maybe
                 (Except.throwError $ SplitRowValueNotFound $ show index)
                 return
                 (Safe.atMay row index)
-            return (HashMap.insert column value hash, index `seq` index + 1))
-        (HashMap.empty, 0)
+            return (HashMap.insert column value hash, index `seq` index - 1))
+        (HashMap.empty, length columns - 1)
         columns
     case Aeson.parse Aeson.parseJSON object of
         Aeson.Error message -> Except.throwError $ SplitRowParseFailure message

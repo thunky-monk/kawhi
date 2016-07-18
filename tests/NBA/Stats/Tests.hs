@@ -47,13 +47,13 @@ tests = Tasty.testGroup "NBA.Stats" [
 
     getSplitRowExpectFailure
         "SplitRowValueNotFound"
-        (defaultResponseBody [defaultSplit { Stats.rows = [take 2 defaultRow] }])
-        (Stats.SplitRowValueNotFound "2"),
+        (defaultResponseBody [defaultSplit { Stats.rows = [take 3 defaultRow] }])
+        (Stats.SplitRowValueNotFound "3"),
 
     getSplitRowExpectFailure
         "SplitRowValueNotFound"
         (defaultResponseBody [defaultSplit { Stats.rows = [take 2 defaultRow] }])
-        (Stats.SplitRowValueNotFound "2"),
+        (Stats.SplitRowValueNotFound "3"),
 
     getSplitRowExpectFailure
         "SplitKeyNotFound (no rows)"
