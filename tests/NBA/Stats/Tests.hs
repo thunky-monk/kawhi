@@ -32,7 +32,7 @@ tests = Tasty.testGroup "NBA.Stats" [
     propertyStatsErrorShow Stats.SplitNameNotFound "SplitNameNotFound",
     propertyStatsErrorShow Stats.SplitKeyNotFound "SplitKeyNotFound",
     propertyStatsErrorShow Stats.SplitColumnNameNotFound "SplitColumnNameNotFound",
-    propertyStatsErrorShow Stats.SplitRowValueNotFound "SplitRowValueNotFound",
+    propertyStatsErrorShow Stats.SplitRowCardinalityInconsistent "SplitRowCardinalityInconsistent",
     propertyStatsErrorShow Stats.SplitRowParseFailure "SplitRowParseFailure",
 
     getSplitRowExpectSuccess
@@ -46,14 +46,9 @@ tests = Tasty.testGroup "NBA.Stats" [
         [defaultModel, defaultModel],
 
     getSplitRowExpectFailure
-        "SplitRowValueNotFound"
+        "SplitRowCardinalityInconsistent"
         (defaultResponseBody [defaultSplit { Stats.rows = [take 3 defaultRow] }])
-        (Stats.SplitRowValueNotFound "3"),
-
-    getSplitRowExpectFailure
-        "SplitRowValueNotFound"
-        (defaultResponseBody [defaultSplit { Stats.rows = [take 2 defaultRow] }])
-        (Stats.SplitRowValueNotFound "3"),
+        (Stats.SplitRowCardinalityInconsistent $ show $ take 3 defaultRow),
 
     getSplitRowExpectFailure
         "SplitKeyNotFound (no rows)"
@@ -87,8 +82,8 @@ tests = Tasty.testGroup "NBA.Stats" [
 
     getSplitRowExpectFailure
         "SplitRowParseFailure (missing field)"
-        (defaultResponseBody [defaultSplit { Stats.columns = take (length defaultColumns - 1) defaultColumns }])
-        (Stats.SplitRowParseFailure "key \"C\" not present"),
+        (defaultResponseBody [defaultSplit { Stats.columns = fmap (\c -> if c == "B" then "!B" else c) defaultColumns }])
+        (Stats.SplitRowParseFailure "key \"B\" not present"),
 
     getSplitRowExpectFailure
         "StatsResponseDecodeFailure (for Stats)"

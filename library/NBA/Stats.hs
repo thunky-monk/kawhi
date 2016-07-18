@@ -47,10 +47,8 @@ import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:), (.=))
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as SBS
-import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import Data.Monoid ((<>))
-import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Simple as HTTP
@@ -98,7 +96,7 @@ getSplitRowsGeneric ::
 getSplitRowsGeneric path splitName params = do
     response <- get path params
     split <- findSplit response splitName
-    traverse (convertTable $ columns split) $ rows split
+    traverse (parseSplitRow $ columns split) $ rows split
 
 {- |
     Gets a row in an NBA Stats split.
@@ -129,7 +127,7 @@ getSplitRowGeneric path splitName key value params = do
                 (==value)
                 (Safe.atMay row keyIndex >>= Aeson.parseMaybe Aeson.parseJSON))
             (rows split))
-    convertTable (columns split) row
+    parseSplitRow (columns split) row
 
 {- |
     An NBA Stats split.
@@ -210,8 +208,8 @@ data StatsError =
     SplitNameNotFound String |
     -- | A split does not have a row matching the given column key and row value.
     SplitKeyNotFound String |
-    -- | A split row has less values than columns.
-    SplitRowValueNotFound String |
+    -- | A split row has a different cardinality than the associated columns.
+    SplitRowCardinalityInconsistent String |
     -- | A split does not have a column name matching the given key.
     SplitColumnNameNotFound String |
     -- | A failure to parse a split row's tabular data to the destination type.
@@ -225,7 +223,7 @@ instance Show StatsError where
                 StatsResponseDecodeFailure message -> format "StatsResponseDecodeFailure" message
                 SplitNameNotFound message -> format "SplitNameNotFound" message
                 SplitKeyNotFound message -> format "SplitKeyNotFound" message
-                SplitRowValueNotFound message -> format "SplitRowValueNotFound" message
+                SplitRowCardinalityInconsistent message -> format "SplitRowCardinalityInconsistent" message
                 SplitColumnNameNotFound message -> format "SplitColumnNameNotFound" message
                 SplitRowParseFailure message -> format "SplitRowParseFailure" message
             format :: String -> String -> String
@@ -248,20 +246,13 @@ getRequest path = HTTP.defaultRequest {
 domain :: SBS.ByteString
 domain = "stats.nba.com"
 
-convertTable :: (Except.MonadError StatsError m, Aeson.FromJSON a) => [SplitColumn] -> SplitRow -> m a
-convertTable columns row = do
-    object <- fmap (Aeson.Object . fst) $ Foldable.foldrM
-        (\column (hash, index) -> do
-            value <- maybe
-                (Except.throwError $ SplitRowValueNotFound $ show index)
-                return
-                (Safe.atMay row index)
-            return (HashMap.insert column value hash, index `seq` index - 1))
-        (HashMap.empty, length columns - 1)
-        columns
-    case Aeson.parse Aeson.parseJSON object of
-        Aeson.Error message -> Except.throwError $ SplitRowParseFailure message
-        Aeson.Success split -> return split
+parseSplitRow :: (Except.MonadError StatsError m, Aeson.FromJSON a) => [SplitColumn] -> SplitRow -> m a
+parseSplitRow columns row =
+    if length columns == length row
+        then case Aeson.parse Aeson.parseJSON $ Aeson.object (zip columns row) of
+            Aeson.Error message -> Except.throwError $ SplitRowParseFailure message
+            Aeson.Success split -> return split
+        else Except.throwError $ SplitRowCardinalityInconsistent $ show row
 
 findSplit :: (Except.MonadError StatsError m) => HTTP.Response LBS.ByteString -> SplitName -> m Split
 findSplit response splitName = do
