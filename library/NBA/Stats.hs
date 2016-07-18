@@ -280,35 +280,81 @@ get :: (Trans.MonadIO m, MonadHttp.MonadHttp m) => StatsPath -> StatsParameters 
 get path params = MonadHttp.performRequest $ HTTP.setQueryString params $ getRequest path
 
 {- $use
+    The following is a working example of getting some "advanced statistics", split by month, for the San Antonio Spurs 2015-2016 regular season.
+
+    To learn how to find the NBA Stats values, like 'teamdashboardbygeneralsplits', for this example, read the <https://github.com/hamsterdam/kawhi/blob/development/guide.md guide>.
+
     @
-    import Data.Aeson
-    import Data.Aeson.Types
-    import NBA.Stats
-
-    data Team = Team {
-        identifier :: Integer,
-        name :: String
-    } deriving (Show, Eq)
-
-    instance FromJSON Team where
-        parseJSON (Object o) = do
-            identifier <- o .: \"TEAM_ID\"
-            name <- o .: \"TEAM_NAME\"
-            return Team {..}
-        parseJSON invalid = typeMismatch \"Team\" invalid
-
-    getTeams :: IO (Either StatsError [Team])
-    getTeams = getSplitRows
-        \"leaguedashteamstats\"
-        \"LeagueDashTeamStats\"
-        [(\"Conference\", Nothing), (\"PerMode\", Just \"PerGame\")]
+    import qualified Data.Aeson as Aeson
+    import qualified Data.Aeson.Types as Aeson
+    import Data.Aeson ((.:))
+    import qualified NBA.Stats as Stats
 
     main :: IO ()
     main = do
-        eitherErrorOrTeams <- getTeams
-        case eitherErrorOrTeams of
-            Left err -> print err
-            Right teams -> print teams
+        eitherErrorOrStats <- advancedStatsByMonth
+        case eitherErrorOrStats of
+            Left statsError -> print statsError
+            Right stats -> mapM_ print stats
+
+    data AdvancedStats = AdvancedStats {
+        month :: String,
+        offensiveRating :: Double,
+        defensiveRating :: Double
+    } deriving (Show, Eq)
+
+    instance Aeson.FromJSON AdvancedStats where
+        parseJSON (Aeson.Object o) = do
+            month <- o .: \"SEASON_MONTH_NAME\"
+            offensiveRating <- o .: \"OFF_RATING\"
+            defensiveRating <- o .: \"DEF_RATING\"
+            return AdvancedStats {..}
+        parseJSON invalid = Aeson.typeMismatch \"AdvancedStats\" invalid
+
+    advancedStatsByMonth :: IO (Either Stats.StatsError [AdvancedStats])
+    advancedStatsByMonth = Stats.getSplitRows \"teamdashboardbygeneralsplits\" \"MonthTeamDashboard\"
+        [
+            (\"Conference\", Nothing),
+            (\"DateFrom\", Nothing),
+            (\"DateTo\", Nothing),
+            (\"Division\", Nothing),
+            (\"GameScope\", Nothing),
+            (\"GameSegment\", Nothing),
+            (\"LastNGames\", Just \"0\"),
+            (\"LeagueID\", Just \"00\"),
+            (\"Location\", Nothing),
+            (\"MeasureType\", Just \"Advanced\"),
+            (\"Month\", Just \"0\"),
+            (\"OpponentTeamID\", Just \"0\"),
+            (\"Outcome\", Nothing),
+            (\"PaceAdjust\", Just \"N\"),
+            (\"PerMode\", Just \"PerGame\"),
+            (\"Period\", Just \"0\"),
+            (\"PlayerExperience\", Nothing),
+            (\"PlayerPosition\", Nothing),
+            (\"PlusMinus\", Just \"N\"),
+            (\"PORound\", Just \"0\"),
+            (\"Rank\", Just \"N\"),
+            (\"Season\", Just \"2015-16\"),
+            (\"SeasonSegment\", Nothing),
+            (\"SeasonType\", Just \"Regular Season\"),
+            (\"ShotClockRange\", Nothing),
+            (\"StarterBench\", Nothing),
+            (\"TeamID\", Just \"1610612759\"),
+            (\"VsConference\", Nothing),
+            (\"VsDivision\", Nothing)
+        ]
     @
 
+    This program's output at the time of writing is:
+
+    @
+    AdvancedStats {month = \"October\", offensiveRating = 102.7, defensiveRating = 93.4}
+    AdvancedStats {month = \"November\", offensiveRating = 102.5, defensiveRating = 93.4}
+    AdvancedStats {month = \"December\", offensiveRating = 111.8, defensiveRating = 91.5}
+    AdvancedStats {month = \"January\", offensiveRating = 114.0, defensiveRating = 100.7}
+    AdvancedStats {month = \"February\", offensiveRating = 110.7, defensiveRating = 99.1}
+    AdvancedStats {month = \"March\", offensiveRating = 107.8, defensiveRating = 97.2}
+    AdvancedStats {month = \"April\", offensiveRating = 102.3, defensiveRating = 103.5}
+    @
 -}
