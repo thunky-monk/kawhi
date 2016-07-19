@@ -23,10 +23,10 @@ import Test.Tasty.HUnit ((@?=))
 
 tests :: Tasty.TestTree
 tests = Tasty.testGroup "NBA.Stats" [
-    SC.testProperty "getRequest == HTTP.parseUrl" $
+    SC.testProperty "getRequest == HTTP.parseUrlThrow" $
         \path -> SC.monadic $ do
             let request = Stats.getRequest $ Char8.pack path
-            model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
+            model <- HTTP.parseUrlThrow $ "http://stats.nba.com/stats/" <> path
             return $ show request == show model,
     propertyStatsErrorShow Stats.StatsResponseDecodeFailure "StatsResponseDecodeFailure",
     propertyStatsErrorShow Stats.SplitNameNotFound "SplitNameNotFound",
