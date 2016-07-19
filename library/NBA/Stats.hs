@@ -51,7 +51,6 @@ import qualified Data.List as List
 import Data.Monoid ((<>))
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client as HTTP
-import qualified Network.HTTP.Simple as HTTP
 import qualified Safe
 
 {- |
