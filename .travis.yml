@@ -1,0 +1,55 @@
+# Use container infrastructure to enable caching
+sudo: false
+
+# Choose a lightweight base image; we provide our own build tools.
+language: c
+
+# GHC depends on GMP
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+    - $HOME/.stack
+
+# Test a LTS and nightly resolver
+env:
+  global:
+    - GLOBAL_ARGS=--no-terminal
+  matrix:
+    - ARGS=--resolver=lts-6
+    - ARGS=--resolver=nightly
+
+# Test on Linux and Mac
+os:
+  - linux
+  - osx
+
+# Allow nightly resolver builds to fail
+matrix:
+  allow_failures:
+    - env: ARGS=--resolver=nightly
+
+before_install:
+  # Using `compiler:` as above sets CC to an invalid value
+  - unset CC
+
+  # Download and unpack the stack executable
+  - mkdir -p ~/.local/bin
+  - export PATH=$HOME/.local/bin:$PATH
+  - |
+    if [[ $TRAVIS_OS_NAME == 'osx' ]]
+    then
+      curl --insecure -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
+    else
+      curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+    fi
+
+install:
+  - stack $GLOBAL_ARGS $ARGS setup
+  - stack $GLOBAL_ARGS $ARGS build --test --haddock --only-dependencies
+
+script: stack $GLOBAL_ARGS $ARGS build --test --haddock --no-haddock-deps

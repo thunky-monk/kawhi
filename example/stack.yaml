@@ -1,0 +1,7 @@
+resolver: lts-6.2
+
+packages:
+  - '.'
+
+extra-deps:
+  - kawhi-0.0.1
