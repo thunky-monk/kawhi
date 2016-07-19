@@ -1,12 +1,13 @@
 name: kawhi
 version: 0.0.1
 synopsis: stats.NBA.com library
-description: Please see README.md
+description: Functions and types for interacting with stats.NBA.com
 homepage: https://github.com/hamsterdam/kawhi
 license: MIT
 license-file: LICENSE
 author: Aaron Taylor
 maintainer: aaron@hamsterdam.co
+category: NBA
 build-type: Simple
 cabal-version: >=1.10
 
@@ -17,17 +18,17 @@ library
     NBA.Stats
   other-modules:
   build-depends:
-    base,
-    aeson,
-    bytestring,
-    exceptions,
-    http-conduit,
-    http-client,
-    http-types,
-    mtl,
-    safe,
-    scientific,
-    text
+    base >= 4.8 && < 5,
+    aeson >= 0.11,
+    bytestring >= 0.10,
+    exceptions >= 0.8,
+    http-conduit >= 2.1,
+    http-client >= 0.4,
+    http-types >= 0.9,
+    mtl >= 2.2,
+    safe >= 0.3,
+    scientific >= 0.3,
+    text >= 1.2
   ghc-options: -Wall
   default-language: Haskell2010
 
