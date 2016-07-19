@@ -5,11 +5,6 @@ resolver: lts-6.7
 packages:
 - '.'
 
-# Extra dependencies not in resolver packages
-extra-deps:
-    # Needed for project build of ghc-mod
-    - cabal-helper-0.6.3.1
-
 docker:
   enable: false # Travis containerized builds don't support Docker yet
   repo: "fpco/stack-build"
