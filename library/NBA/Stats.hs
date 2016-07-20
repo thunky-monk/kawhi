@@ -266,7 +266,7 @@ findSplit response splitName = do
 
 
 
-get :: (Trans.MonadIO m, MonadHttp.MonadHttp m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
+get :: MonadHttp.MonadHttp m => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
 get path params = MonadHttp.performRequest $ HTTP.setQueryString params $ getRequest path
 
 {- $use
