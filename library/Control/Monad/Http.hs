@@ -40,14 +40,19 @@ instance MonadHttp IO where
     performRequest = HTTPSimple.httpLbs
 
 instance Catch.MonadThrow m => MonadHttp (HttpT m) where
-    performRequest _ = check
+    performRequest request = check
         where
             check = do
                 response <- Reader.ask
                 let status = HTTP.responseStatus response
                 if status >= HTTP.ok200 && status < HTTP.multipleChoices300
                     then return response
-                    else Catch.throwM $ HTTP.StatusCodeException status [] (HTTP.createCookieJar [])
+                    else
+                        let
+                            badResponse = response { HTTP.responseBody = () }
+                            body = LBS.toStrict . HTTP.responseBody $ response
+                        in
+                            Catch.throwM $ HTTP.HttpExceptionRequest request (HTTP.StatusCodeException badResponse body)
 
 instance Trans.MonadIO m => MonadHttp (Except.ExceptT e m) where
     performRequest = HTTPSimple.httpLbs
