@@ -10,6 +10,11 @@ maintainer: aaron@hamsterdam.co
 category: API
 build-type: Simple
 cabal-version: >=1.10
+extra-source-files:
+  README.md
+  guide.md
+  stack.yaml
+  changelog.md
 
 library
   hs-source-dirs: library

@@ -2,11 +2,9 @@ resolver: lts-6.2
 
 packages:
   - '.'
-  # testing http-client-0.5.1
-  - ../.
 
 extra-deps:
-  # testing http-client-0.5.1
+  - kawhi-0.1.0
   - http-client-0.5.1
   - http-conduit-2.2.0
   - http-client-tls-0.3.0
