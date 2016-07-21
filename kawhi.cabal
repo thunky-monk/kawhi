@@ -14,6 +14,7 @@ extra-source-files:
   README.md
   guide.md
   stack.yaml
+  changelog.md
 
 library
   hs-source-dirs: library
