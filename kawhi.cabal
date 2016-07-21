@@ -1,5 +1,5 @@
 name: kawhi
-version: 0.0.1
+version: 0.1.0
 synopsis: stats.NBA.com library
 description: Functions and types for interacting with stats.NBA.com
 homepage: https://github.com/hamsterdam/kawhi
@@ -22,8 +22,8 @@ library
     aeson >= 0.11,
     bytestring >= 0.10,
     exceptions >= 0.8,
-    http-conduit >= 2.1,
-    http-client >= 0.4.30 && < 0.5,
+    http-conduit >= 2.2,
+    http-client >= 0.5.1,
     http-types >= 0.9,
     mtl >= 2.2,
     safe >= 0.3,

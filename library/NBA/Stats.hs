@@ -33,12 +33,9 @@ module NBA.Stats (
     StatsPath,
     StatsParameters,
     StatsError(..),
-
-    -- * Utility
-    domain,
-    getRequest,
 ) where
 
+import qualified Control.Monad.Catch as Catch
 import qualified Control.Monad.Except as Except
 import qualified Control.Monad.Trans as Trans
 import qualified Control.Monad.Http as MonadHttp
@@ -47,6 +44,7 @@ import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:), (.=))
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as SBS
+import qualified Data.ByteString.Char8 as Char8
 import qualified Data.List as List
 import Data.Monoid ((<>))
 import qualified Data.Text as Text
@@ -87,7 +85,7 @@ getSplitRow path splitName key value params = Except.runExceptT $ getSplitRowGen
     The simpler version of this function, 'getSplitRows', has a concrete 'm'.
 -}
 getSplitRowsGeneric ::
-    (Trans.MonadIO m, MonadHttp.MonadHttp m, Except.MonadError StatsError m, Aeson.FromJSON a)
+    (Trans.MonadIO m, MonadHttp.MonadHttp m, Except.MonadError StatsError m, Catch.MonadThrow m, Aeson.FromJSON a)
     => StatsPath -- ^ The URL path for the stats web page containing the split.
     -> SplitName -- ^ The split name.
     -> StatsParameters -- ^ The parameters for customizing the stats.
@@ -103,7 +101,7 @@ getSplitRowsGeneric path splitName params = do
     The simpler version of this function, 'getSplitRows', has a concrete 'm'.
 -}
 getSplitRowGeneric ::
-    (Trans.MonadIO m, MonadHttp.MonadHttp m, Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
+    (Trans.MonadIO m, MonadHttp.MonadHttp m, Except.MonadError StatsError m, Catch.MonadThrow m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
     => StatsPath -- ^ The URL path for the stats web page containing the split.
     -> SplitName -- ^ The split name.
     -> SplitColumn -- ^ The column name key for a the desired row.
@@ -228,23 +226,6 @@ instance Show StatsError where
             format :: String -> String -> String
             format name message = name ++ " " ++ message
 
-{- |
-    Generates an HTTP GET request like the ones used internally.
--}
-getRequest :: StatsPath -> HTTP.Request
-getRequest path = HTTP.defaultRequest {
-    HTTP.method = "GET",
-    HTTP.secure = False,
-    HTTP.host = domain,
-    HTTP.path = "/stats/" <> path
-}
-
-{- |
-    The NBA Stats domain name.
--}
-domain :: SBS.ByteString
-domain = "stats.nba.com"
-
 parseSplitRow :: (Except.MonadError StatsError m, Aeson.FromJSON a) => [SplitColumn] -> SplitRow -> m a
 parseSplitRow columns row =
     if length columns == length row
@@ -266,8 +247,10 @@ findSplit response splitName = do
 
 
 
-get :: MonadHttp.MonadHttp m => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
-get path params = MonadHttp.performRequest $ HTTP.setQueryString params $ getRequest path
+get :: (MonadHttp.MonadHttp m, Catch.MonadThrow m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
+get path params = do
+    request <- HTTP.parseRequest $ Char8.unpack $ "http://stats.nba.com/stats/" <> path
+    MonadHttp.performRequest $ HTTP.setQueryString params request
 
 {- $use
     The following is a working example of getting some "advanced statistics", split by month, for the San Antonio Spurs 2015-2016 regular season.

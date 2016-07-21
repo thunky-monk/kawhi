@@ -5,6 +5,12 @@ resolver: lts-6.7
 packages:
 - '.'
 
+extra-deps:
+  # testing http-client-0.5.1
+  - http-client-0.5.1
+  - http-conduit-2.2.0
+  - http-client-tls-0.3.0
+
 docker:
   enable: false # Travis containerized builds don't support Docker yet
   repo: "fpco/stack-build"
