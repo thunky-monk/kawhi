@@ -18,7 +18,7 @@ library
     NBA.Stats
   other-modules:
   build-depends:
-    base >= 4.8 && < 5,
+    base == 4.8.*,
     aeson >= 0.11,
     bytestring >= 0.10,
     exceptions >= 0.8,
@@ -38,21 +38,21 @@ test-suite tests
   main-is: Tests.hs
   other-modules: NBA.Stats.Tests
   build-depends:
-    base,
-    kawhi,
-    aeson,
-    bytestring,
-    exceptions,
-    http-client,
-    http-types,
-    mtl,
-    scientific,
-    smallcheck,
-    tasty,
-    tasty-hunit,
-    tasty-quickcheck,
-    tasty-smallcheck,
-    text
+    base == 4.8.*,
+    kawhi >= 0.0,
+    aeson >= 0.11,
+    bytestring >= 0.10,
+    exceptions >= 0.8,
+    http-client >= 0.4.30,
+    http-types >= 0.9,
+    mtl >= 2.2,
+    scientific >= 0.3,
+    smallcheck >= 1.1,
+    tasty >= 0.11,
+    tasty-hunit >= 0.9,
+    tasty-quickcheck >= 0.8,
+    tasty-smallcheck >= 0.8,
+    text >= 1.2
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language: Haskell2010
 
