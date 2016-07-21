@@ -1,8 +1,8 @@
-# Kawhi : stats.NBA.com library
+# Kawhi : stats.NBA.com library 🏀
 
 [![Build Status](https://img.shields.io/hackage/v/kawhi.svg)](https://hackage.haskell.org/package/kawhi) [![Build Status](https://travis-ci.org/hamsterdam/kawhi.svg?branch=development)](https://travis-ci.org/hamsterdam/kawhi)
 
-This library provides a [Haskell](https://haskell-lang.org) API for working with data from the [NBA Stats website](http://stats.nba.com). NBA Stats contains rich data, but does not make it easy to access. Kawhi is a tool to help people interested working with NBA Stats data. It automates the tedious and error-prone parts so that users can focus on data.
+A Haskell library for working with [NBA Stats](http://stats.nba.com) data. NBA Stats contains rich data, but accessing it is difficult and tedious. Kawhi helps to automate the data retrieval, allowing users to focus on statistics.
 
 It's named after [Kawhi Leonard](http://cdn2.vox-cdn.com/assets/5039756/Kawhi-Leonard-portrait-oil.JPG).
 
@@ -11,5 +11,5 @@ It's named after [Kawhi Leonard](http://cdn2.vox-cdn.com/assets/5039756/Kawhi-Le
 To get started:
 
 1. [Get Haskell](https://haskell-lang.org/get-started). If you've never done any computer programming, this could be challenging. [Never give up!](https://www.instagram.com/p/BENA9hpN_wL/)
-2. Read the [guide](guide.md).
-3. Check out the [example](example).
+2. Read the [guide](https://github.com/hamsterdam/kawhi/blob/master/guide.md).
+3. Check out the [example](https://github.com/hamsterdam/kawhi/tree/master/example).

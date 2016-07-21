@@ -8,7 +8,6 @@ import qualified Control.Monad.Http as MonadHttp
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
-import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as ByteString
 import Data.Monoid ((<>))
 import qualified Data.Scientific as Sci
@@ -23,11 +22,6 @@ import Test.Tasty.HUnit ((@?=))
 
 tests :: Tasty.TestTree
 tests = Tasty.testGroup "NBA.Stats" [
-    SC.testProperty "getRequest == HTTP.parseUrl" $
-        \path -> SC.monadic $ do
-            let request = Stats.getRequest $ Char8.pack path
-            model <- HTTP.parseUrl $ "http://stats.nba.com/stats/" <> path
-            return $ show request == show model,
     propertyStatsErrorShow Stats.StatsResponseDecodeFailure "StatsResponseDecodeFailure",
     propertyStatsErrorShow Stats.SplitNameNotFound "SplitNameNotFound",
     propertyStatsErrorShow Stats.SplitKeyNotFound "SplitKeyNotFound",
