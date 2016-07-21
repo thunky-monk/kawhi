@@ -23,7 +23,7 @@ library
     NBA.Stats
   other-modules:
   build-depends:
-    base == 4.8.*,
+    base >= 4.8 && < 5,
     aeson >= 0.11,
     bytestring >= 0.10,
     exceptions >= 0.8,
@@ -43,7 +43,7 @@ test-suite tests
   main-is: Tests.hs
   other-modules: NBA.Stats.Tests
   build-depends:
-    base == 4.8.*,
+    base >= 4.8 && < 5,
     kawhi >= 0.0,
     aeson >= 0.11,
     bytestring >= 0.10,
