@@ -4,6 +4,8 @@
 
 Ideally, the people responsible for [stats.nba.com](stats.nba.com) would explain exactly how to access all the data in an easy to use website. Unfortunately, that is not the current reality. For now, we have to do some detective work. Luckily, it's not too hard.
 
+*The following describes instructions for using Chrome on macOS machine. The steps are similar on any modern web browser.*
+
 - Go to the page you want to get data from on [stats.nba.com](stats.nba.com). For example, go to the [San Antonio Spurs "advanced statistics" page](http://stats.nba.com/team/#!/1610612759/stats/advanced/).
 - In the menu bar click `View -> Developer -> Developer Tools`.
 - In the Developer Tools view, click the `Network` tab.
