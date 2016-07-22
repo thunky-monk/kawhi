@@ -1,5 +1,5 @@
 name: kawhi
-version: 0.1.0
+version: 0.2.0
 synopsis: stats.NBA.com library
 description: Functions and types for interacting with stats.NBA.com
 homepage: https://github.com/hamsterdam/kawhi
@@ -20,7 +20,7 @@ library
   hs-source-dirs: library
   exposed-modules:
     Control.Monad.Http
-    NBA.Stats
+    Data.NBA.Stats
   other-modules:
   build-depends:
     base >= 4.8 && < 5,
@@ -41,7 +41,7 @@ test-suite tests
   type: exitcode-stdio-1.0
   hs-source-dirs: tests
   main-is: Tests.hs
-  other-modules: NBA.Stats.Tests
+  other-modules: Data.NBA.Stats.Tests
   build-depends:
     base >= 4.8 && < 5,
     kawhi >= 0.0,

@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module NBA.Stats.Tests where
+module Data.NBA.Stats.Tests where
 
 import qualified Control.Monad.Except as Except
 import qualified Control.Monad.Http as MonadHttp
@@ -14,14 +14,14 @@ import qualified Data.Scientific as Sci
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client.Internal as HTTP
 import qualified Network.HTTP.Types as HTTP
-import qualified NBA.Stats as Stats
+import qualified Data.NBA.Stats as Stats
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
 import qualified Test.Tasty.SmallCheck as SC
 import Test.Tasty.HUnit ((@?=))
 
 tests :: Tasty.TestTree
-tests = Tasty.testGroup "NBA.Stats" [
+tests = Tasty.testGroup "Data.NBA.Stats" [
     propertyStatsErrorShow Stats.StatsResponseDecodeFailure "StatsResponseDecodeFailure",
     propertyStatsErrorShow Stats.SplitNameNotFound "SplitNameNotFound",
     propertyStatsErrorShow Stats.SplitKeyNotFound "SplitKeyNotFound",
