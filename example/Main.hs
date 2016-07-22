@@ -6,7 +6,7 @@ module Main where
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
-import qualified NBA.Stats as Stats
+import qualified Data.NBA.Stats as Stats
 
 main :: IO ()
 main = do

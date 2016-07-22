@@ -20,7 +20,7 @@ library
   hs-source-dirs: library
   exposed-modules:
     Control.Monad.Http
-    NBA.Stats
+    Data.NBA.Stats
   other-modules:
   build-depends:
     base >= 4.8 && < 5,
@@ -41,7 +41,7 @@ test-suite tests
   type: exitcode-stdio-1.0
   hs-source-dirs: tests
   main-is: Tests.hs
-  other-modules: NBA.Stats.Tests
+  other-modules: Data.NBA.Stats.Tests
   build-depends:
     base >= 4.8 && < 5,
     kawhi >= 0.0,

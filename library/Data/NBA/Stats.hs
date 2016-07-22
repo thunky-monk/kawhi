@@ -5,14 +5,14 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 {-|
-    Module: NBA.Stats
+    Module: Data.NBA.Stats
     Copyright: Aaron Taylor, 2016
     License: MIT
     Maintainer: aaron@hamsterdam.co
 
     Functions and types for interacting with <http://stats.NBA.com NBA Stats>.
 -}
-module NBA.Stats (
+module Data.NBA.Stats (
     -- * How to use this library
     -- $use
 
@@ -261,7 +261,7 @@ get path params = do
     import qualified Data.Aeson as Aeson
     import qualified Data.Aeson.Types as Aeson
     import Data.Aeson ((.:))
-    import qualified NBA.Stats as Stats
+    import qualified Data.NBA.Stats as Stats
 
     main :: IO ()
     main = do
