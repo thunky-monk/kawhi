@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+### Summary
+
+Updated the top-level module name.
+
+### API Changes
+
+NBA.Stats -> Data.NBA.Stats
+
 ## 0.1.0
 
 ### Summary
