@@ -1,6 +1,6 @@
 # Kawhi : stats.NBA.com library 🏀
 
-[![Build Status](https://img.shields.io/hackage/v/kawhi.svg)](https://hackage.haskell.org/package/kawhi) [![Build Status](https://travis-ci.org/hamsterdam/kawhi.svg?branch=development)](https://travis-ci.org/hamsterdam/kawhi)
+[![Hackage](https://img.shields.io/hackage/v/kawhi.svg)](https://hackage.haskell.org/package/kawhi) [![Build Status](https://travis-ci.org/hamsterdam/kawhi.svg?branch=development)](https://travis-ci.org/hamsterdam/kawhi)
 
 A Haskell library for working with [NBA Stats](http://stats.nba.com) data. NBA Stats contains rich data, but accessing it is difficult and tedious. Kawhi helps to automate the data retrieval, allowing users to focus on statistics.
 
