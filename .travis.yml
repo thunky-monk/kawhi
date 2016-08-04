@@ -33,11 +33,8 @@ matrix:
   allow_failures:
     - env: ARGS=--resolver=nightly
 
+# Download and unpack the stack executable
 before_install:
-  # Using `compiler:` as above sets CC to an invalid value
-  - unset CC
-
-  # Download and unpack the stack executable
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
   - |
