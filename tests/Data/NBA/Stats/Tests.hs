@@ -72,7 +72,7 @@ tests = Tasty.testGroup "Data.NBA.Stats" [
     getSplitRowExpectFailure
         "SplitRowParseFailure (type mismatch)"
         (defaultResponseBody [defaultSplit { Stats.rows = [[Aeson.String defaultRowIdentifier, Aeson.String $ Text.pack $ show (a defaultModel), Aeson.String $ b defaultModel, Aeson.Number $ Sci.fromFloatDigits (c defaultModel)]] }])
-        (Stats.SplitRowParseFailure "failed to parse field A: expected Integral, encountered String"),
+        (Stats.SplitRowParseFailure "expected Integer, encountered String"),
 
     getSplitRowExpectFailure
         "SplitRowParseFailure (missing field)"

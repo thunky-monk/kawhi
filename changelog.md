@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+Updated to support [aeson-1.0.0.0](https://hackage.haskell.org/package/aeson-1.0.0.0).
+
 ## 0.2.0
 
 ### Summary
