@@ -1,14 +1,9 @@
 # Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
-resolver: lts-6.7
+resolver: nightly-2016-09-15
 
 # Packages to be built
 packages:
 - '.'
-
-extra-deps:
-  - http-client-0.5.1
-  - http-conduit-2.2.0
-  - http-client-tls-0.3.0
 
 docker:
   enable: false # Travis containerized builds don't support Docker yet
