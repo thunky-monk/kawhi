@@ -255,7 +255,7 @@ get path params = do
 {- $use
     The following is a working example of getting some "advanced statistics", split by month, for the San Antonio Spurs 2015-2016 regular season.
 
-    To learn how to find the NBA Stats values, like 'teamdashboardbygeneralsplits', for this example, read the <https://github.com/hamsterdam/kawhi/blob/master/guide.md guide>.
+    To learn how to find the NBA Stats values, like 'teamdashboardbygeneralsplits', for this example, read the <https://github.com/thunky-monk/kawhi/blob/master/guide.md guide>.
 
     @
     import qualified Data.Aeson as Aeson

@@ -2,7 +2,7 @@ name: kawhi-example
 version: 0.0.1
 synopsis: kawhi example
 description: Please see README.md
-homepage: https://github.com/hamsterdam/kawhi
+homepage: https://github.com/thunky-monk/kawhi
 license: MIT
 license-file: LICENSE
 author: Aaron Taylor
