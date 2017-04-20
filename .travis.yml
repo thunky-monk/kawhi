@@ -20,8 +20,7 @@ env:
   global:
     - GLOBAL_ARGS=--no-terminal
   matrix:
-    # >= 0.2.1 targeted for lts-8
-    # - ARGS=--resolver=lts-6
+    - ARGS=--resolver=lts-8
     - ARGS=--resolver=nightly
 
 # Test on Linux and Mac
@@ -32,8 +31,7 @@ os:
 # Allow nightly resolver builds to fail
 matrix:
   allow_failures:
-    # # >= 0.2.1 targeted for lts-8
-    # - env: ARGS=--resolver=nightly
+    - env: ARGS=--resolver=nightly
 
 # Download and unpack the stack executable
 before_install:
