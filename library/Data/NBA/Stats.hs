@@ -49,6 +49,7 @@ import qualified Data.List as List
 import Data.Monoid ((<>))
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client as HTTP
+import qualified Network.HTTP.Simple as HTTP
 import qualified Safe
 
 {- |
@@ -248,9 +249,13 @@ findSplit response splitName = do
 
 
 get :: (MonadHttp.MonadHttp m, Catch.MonadThrow m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
-get path params = do
-    request <- HTTP.parseRequest $ Char8.unpack $ "http://stats.nba.com/stats/" <> path
-    MonadHttp.performRequest $ HTTP.setQueryString params request
+get path params =
+    modifyRequest <$> HTTP.parseRequest (Char8.unpack $ "http://stats.nba.com/stats/" <> path)
+    >>= MonadHttp.performRequest
+    where
+      modifyRequest =
+        HTTP.setRequestHeaders [("Accept-Language","en-us"), ("Accept", "application/json")]
+        . HTTP.setQueryString params
 
 {- $use
     The following is a working example of getting some "advanced statistics", split by month, for the San Antonio Spurs 2015-2016 regular season.
