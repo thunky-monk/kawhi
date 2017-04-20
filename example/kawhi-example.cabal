@@ -16,5 +16,5 @@ executable kawhi-example
     build-depends:
         base,
         aeson,
-        kawhi
+        kawhi >= 0.2.2
     default-language: Haskell2010
