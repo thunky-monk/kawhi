@@ -36,6 +36,7 @@ module Data.NBA.Stats (
     SplitRow,
     StatsPath,
     StatsParameters,
+    StatsBytes,
     StatsError(..),
 ) where
 
