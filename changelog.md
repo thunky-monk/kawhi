@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+### Summary
+
+Added parse-only APIs.
+
+### API Changes
+
+- `splitRows`
+- `splitRow`
+- `splitRowsGeneric`
+- `splitRowGeneric`
+- `StatsBytes`
+
 ## 0.2.2
 
 Updated to add HTTP headers required by NBA Stats.
