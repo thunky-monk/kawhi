@@ -254,7 +254,7 @@ get path params =
     >>= MonadHttp.performRequest
     where
       modifyRequest =
-        HTTP.setRequestHeaders [("Accept-Language","en-us"), ("Accept", "application/json")]
+        HTTP.setRequestHeaders [("Accept-Language","en-us"), ("Accept", "application/json"), ("Referer", "stats.nba.com")]
         . HTTP.setQueryString params
 
 {- $use
