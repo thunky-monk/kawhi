@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+Add HTTP `Referer` header to all requests. 
+
+*This may not be added versions greater than `0.2.*`, because `0.3.0` allows users to independently retrieve data from NBA Stats.*
+
 ## 0.2.2
 
 Updated to add HTTP headers required by NBA Stats.
