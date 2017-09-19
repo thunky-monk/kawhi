@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0
+
+### Summary
+
+Added parse-only APIs.
+
+### API Changes
+
+- `splitRows`
+- `splitRow`
+- `splitRowsGeneric`
+- `splitRowGeneric`
+- `StatsBytes`
+
+## 0.2.2
+
+Updated to add HTTP headers required by NBA Stats.
+
 ## 0.2.1
 
 Updated to support [aeson-1.0.0.0](https://hackage.haskell.org/package/aeson-1.0.0.0).

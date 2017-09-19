@@ -19,10 +19,14 @@ module Data.NBA.Stats (
     -- * Simple API
     getSplitRows,
     getSplitRow,
+    splitRows,
+    splitRow,
 
     -- * Generic API
     getSplitRowsGeneric,
     getSplitRowGeneric,
+    splitRowsGeneric,
+    splitRowGeneric,
 
     -- * Types
     Stats(..),
@@ -32,6 +36,7 @@ module Data.NBA.Stats (
     SplitRow,
     StatsPath,
     StatsParameters,
+    StatsBytes,
     StatsError(..),
 ) where
 
@@ -55,6 +60,8 @@ import qualified Safe
 {- |
     Gets all the rows in a NBA Stats split.
 
+    To retrieve the raw data from NBA Stats independently from parsing, use 'splitRows'.
+
     When using this function in a custom monad transformer, it may be desirable to use the generic version of this function, 'getSplitRowsGeneric', instead.
 -}
 getSplitRows ::
@@ -66,7 +73,23 @@ getSplitRows ::
 getSplitRows path splitName params = Except.runExceptT $ getSplitRowsGeneric path splitName params
 
 {- |
+    Parses all the rows of an NBA Stats split from abitrary data.
+
+    Alternatively, 'getSplitRows' retrieves the data from NBA Stats before parsing.
+
+    To use something other than 'Either' for errors, use the generic version of this function, 'splitRowsGeneric', instead.
+-}
+splitRows ::
+    Aeson.FromJSON a
+    => SplitName -- ^ The split name.
+    -> StatsBytes -- ^ The bytes to decode into split rows.
+    -> Either StatsError [a] -- ^ The return value: an action resulting in an error or split rows.
+splitRows = splitRowsGeneric
+
+{- |
     Gets a row in a NBA Stats split.
+
+    To retrieve the raw data from NBA Stats independently from parsing, use 'splitRows'.
 
     When using this function in a custom monad transformer, it may be desirable to use the generic version of this function, 'getSplitRowGeneric', instead.
 -}
@@ -81,7 +104,25 @@ getSplitRow ::
 getSplitRow path splitName key value params = Except.runExceptT $ getSplitRowGeneric path splitName key value params
 
 {- |
+    Parses a row of an NBA Stats split from abitrary data.
+
+    Alternatively, 'getSplitRow' retrieves the data from NBA Stats before parsing.
+
+    To use something other than 'Either' for errors, use the generic version of this function, 'splitRowGeneric', instead.
+-}
+splitRow ::
+    (Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
+    => SplitName -- ^ The split name.
+    -> SplitColumn -- ^ The column name key for a the desired row.
+    -> v -- ^ The expected row value associated with the column name key for a the desired row.
+    -> StatsBytes -- ^ The bytes to decode into a split row.
+    -> Either StatsError a -- ^ The return value: an action resulting in an error or a split row.
+splitRow = splitRowGeneric
+
+{- |
     Gets all the rows in a NBA Stats split.
+
+    To retrieve the raw data from NBA Stats independently from parsing, use 'splitRowsGeneric'.
 
     The simpler version of this function, 'getSplitRows', has a concrete 'm'.
 -}
@@ -91,13 +132,26 @@ getSplitRowsGeneric ::
     -> SplitName -- ^ The split name.
     -> StatsParameters -- ^ The parameters for customizing the stats.
     -> m [a] -- ^ The return value: an action resulting in an error or split rows.
-getSplitRowsGeneric path splitName params = do
-    response <- get path params
-    split <- findSplit response splitName
+getSplitRowsGeneric path splitName params = get path params >>= splitRowsGeneric splitName
+
+{- |
+    Parses all the rows of an NBA Stats split from abitrary data.
+
+    Alternatively, 'getSplitRowsGeneric' retrieves the data from NBA Stats before parsing.
+-}
+splitRowsGeneric ::
+    (Except.MonadError StatsError m, Aeson.FromJSON a)
+    => SplitName -- ^ The split name.
+    -> StatsBytes -- ^ The bytes to decode into split rows.
+    -> m [a] -- ^ The return value: an action resulting in an error or split rows.
+splitRowsGeneric splitName bytes = do
+    split <- findSplit splitName bytes
     traverse (parseSplitRow $ columns split) $ rows split
 
 {- |
     Gets a row in an NBA Stats split.
+
+    To retrieve the raw data from NBA Stats independently from parsing, use 'splitRowGeneric'.
 
     The simpler version of this function, 'getSplitRows', has a concrete 'm'.
 -}
@@ -109,9 +163,22 @@ getSplitRowGeneric ::
     -> v -- ^ The expected row value associated with the column name key for a the desired row.
     -> StatsParameters -- ^ The parameters for customizing the stats.
     -> m a -- ^ The return value: an action resulting in an error or a split row.
-getSplitRowGeneric path splitName key value params = do
-    response <- get path params
-    split <- findSplit response splitName
+getSplitRowGeneric path splitName key value params = get path params >>= splitRowGeneric splitName key value
+
+{- |
+    Parses a row of an NBA Stats split from abitrary data.
+
+    Alternatively, 'getSplitRowGeneric' retrieves the data from NBA Stats before parsing.
+-}
+splitRowGeneric ::
+    (Except.MonadError StatsError m, Eq v, Show v, Aeson.FromJSON v, Aeson.FromJSON a)
+    => SplitName -- ^ The split name.
+    -> SplitColumn -- ^ The column name key for a the desired row.
+    -> v -- ^ The expected row value associated with the column name key for a the desired row.
+    -> StatsBytes -- ^ The bytes to decode into a split row.
+    -> m a -- ^ The return value: an action resulting in an error or a split row.
+splitRowGeneric splitName key value bytes = do
+    split <- findSplit splitName bytes
     keyIndex <- maybe
         (Except.throwError $ SplitColumnNameNotFound $ Text.unpack key)
         return
@@ -196,6 +263,9 @@ type StatsPath = SBS.ByteString
 -- | A collection of parameters that customize NBA Stats resources.
 type StatsParameters = [(SBS.ByteString, Maybe SBS.ByteString)]
 
+-- | Bytes representing an NBA Stats resource.
+type StatsBytes = LBS.ByteString
+
 {- |
     An error which may be generated by this library.
 -}
@@ -235,12 +305,12 @@ parseSplitRow columns row =
             Aeson.Success split -> return split
         else Except.throwError $ SplitRowCardinalityInconsistent $ show row
 
-findSplit :: (Except.MonadError StatsError m) => HTTP.Response LBS.ByteString -> SplitName -> m Split
-findSplit response splitName = do
+findSplit :: (Except.MonadError StatsError m) => SplitName -> StatsBytes -> m Split
+findSplit splitName bytes = do
     stats <- either
         (Except.throwError . StatsResponseDecodeFailure)
         return
-        (Aeson.eitherDecode . HTTP.responseBody $ response)
+        (Aeson.eitherDecode bytes)
     maybe
         (Except.throwError $ SplitNameNotFound $ Text.unpack splitName)
         return
@@ -248,11 +318,13 @@ findSplit response splitName = do
 
 
 
-get :: (MonadHttp.MonadHttp m, Catch.MonadThrow m) => StatsPath -> StatsParameters -> m (HTTP.Response LBS.ByteString)
-get path params =
-    modifyRequest <$> HTTP.parseRequest (Char8.unpack $ "http://stats.nba.com/stats/" <> path)
-    >>= MonadHttp.performRequest
+get :: (MonadHttp.MonadHttp m, Catch.MonadThrow m) => StatsPath -> StatsParameters -> m StatsBytes
+get path params = HTTP.responseBody <$> getRequest
     where
+      getRequest =
+        modifyRequest
+        <$> HTTP.parseRequest (Char8.unpack $ "http://stats.nba.com/stats/" <> path)
+        >>= MonadHttp.performRequest
       modifyRequest =
         HTTP.setRequestHeaders [("Accept-Language","en-us"), ("Accept", "application/json")]
         . HTTP.setQueryString params
